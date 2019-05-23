@@ -66,15 +66,23 @@ public class Main {
         final int numServers = Integer.parseInt(args[3]);
         final long initialTime = Long.parseLong(args[4]);
         int numSources = Integer.parseInt(args[5]);
-        
-        int threshold = 0;   // frequency threshold of Head
-        float epsilon = 0.001f;   // imbalance threshold
+
+        // default
+        int threshold = 5;   // frequency threshold of Head
+        float delta = 0.2f;
+        float epsilon = 0.0001f;   // imbalance threshold
         
         if (simulatorType == 5 || simulatorType == 6 || simulatorType == 3 || simulatorType == 4) {
             threshold = Integer.parseInt(args[6]);
         }
-        if (simulatorType == 4) {
+
+
+        if (simulatorType == 4 || simulatorType == 7) {
             epsilon = Float.parseFloat(args[7]);
+        }
+
+        if (simulatorType == 7) {
+            delta = Float.parseFloat(args[8]);
         }
 
 
@@ -116,7 +124,7 @@ public class Main {
                         numSources, threshold));
             } else if (simulatorType == 7) {
                 hashes.put(tg, new LBDB(timeSeries.get(tg),
-                        numSources, threshold, epsilon));
+                        numSources, delta, epsilon));
             }
         }
 

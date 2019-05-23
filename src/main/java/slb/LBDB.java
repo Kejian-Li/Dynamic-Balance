@@ -12,32 +12,31 @@ public class LBDB implements LoadBalancer {
 
     private List<Server> nodes;
     private int numSources;
-    private float delta;  // frequency threshold
-    private float epsilon;  // load imbalance threshold
     private int serverNum;
 
     private long loadSamplingGranularity;
 
     private long[][] localWorkload;
 
-
     private long elementCount[]; // count of element in upstream sources
 
-    private float imbalance = 0.0001f;   // current load imbalance
-
-    private double error = delta * 0.1;
+    private float delta;  // frequency threshold
+    private float imbalance = 0.0f;   // current load imbalance
+    private float epsilon;  // load imbalance threshold\
+    private double error = delta * 0.1;  // lossy counting error
 
     private List<LossyCounting> lossyCountings;
     private ArrayList<HashMap<Object, HashSet<Integer>>> lists;
 
-    public LBDB(List<Server> nodes, int numSources, int delta, float epsilon) {
+    public LBDB(List<Server> nodes, int numSources, float delta, float epsilon) {
 
         this.nodes = nodes;
+        this.serverNum = nodes.size();
         this.numSources = numSources;
+
         this.delta = delta;
         this.epsilon = epsilon;
 
-        this.serverNum = nodes.size();
         this.loadSamplingGranularity = nodes.get(0).getGranularity();
 
         for (int i = 1; i < serverNum; i++) {
@@ -46,7 +45,7 @@ public class LBDB implements LoadBalancer {
 
         this.localWorkload = new long[numSources][];  // upstream nodes workload
         for (int i = 0; i < numSources; i++) {
-            localWorkload[i] = new long[nodes.size()];
+            localWorkload[i] = new long[serverNum];
         }
 
         this.elementCount = new long[numSources];
@@ -82,6 +81,25 @@ public class LBDB implements LoadBalancer {
         }
 
         int selected; // index of chosen server
+        float f = getFrequency(key);
+
+        if (f <= delta * serverNum) {
+            selected = Math.abs(Hashing.murmur3_128().hashBytes(key.toString().getBytes()).asInt() % serverNum);
+        } else {
+            imbalance = computeCurrentImbalance();
+            if (imbalance <= epsilon) {
+                selected = findLeastLoadOneInVk();
+            } else {
+                selected = findLeastLoadOneInV();
+            }
+        }
+        Vk.add(selected);  // selected server now contain given key
+
+        localWorkload[source][selected]++;
+        return nodes.get(selected);
+    }
+
+    private float getFrequency(Object key) {
         float f = 0.0f; // frequency of key
         lossyCounting = lossyCountings.get(source);
         try {
@@ -90,19 +108,17 @@ public class LBDB implements LoadBalancer {
         } catch (FrequencyException e) {
             System.out.println(e);
         }
+        return f;
+    }
 
-        if (f <= delta * serverNum) {
-            selected = Math.abs(Hashing.murmur3_128().hashBytes(key.toString().getBytes()).asInt() % serverNum);
-        } else if (imbalance <= epsilon) {
-            selected = findLeastLoadOneInVk();
-        } else {
-            selected = findLeastLoadOneInV();
+    private float computeCurrentImbalance() {
+        long totalLoad = 0;
+        for (int i = 0; i < serverNum; i++) {
+            totalLoad += localWorkload[source][i];
         }
-
-        Vk.add(selected);  // selected server now contain given key
-
-        localWorkload[source][selected]++;
-        return nodes.get(selected);
+        long averageLoad = totalLoad / serverNum;
+        long maxLoad = findMaxLoadOneInV();
+        return maxLoad / averageLoad - 1;  // Load Imbalance definition: (Max - Avg) / Avg = (Max / AVg) - 1
     }
 
     private int findLeastLoadOneInVk() {  //Vk: received key
@@ -124,10 +140,22 @@ public class LBDB implements LoadBalancer {
         return min;
     }
 
+    private int findMaxLoadOneInV() {
+        int max = 0;
+        long maxOne = localWorkload[source][0];
+        for (int i = 1; i < serverNum; i++) {
+            if (localWorkload[source][i] > maxOne) {
+                maxOne = localWorkload[source][i];
+                max = i;
+            }
+        }
+        return max;
+    }
+
     private int findLeastLoadOneInV() {  // V: all of downstream servers
         int min = 0;
         long minOne = localWorkload[source][0];
-        for (int i = 1; i < nodes.size(); i++) {
+        for (int i = 1; i < serverNum; i++) {
             if (localWorkload[source][i] < minOne) {
                 minOne = localWorkload[source][i];
                 min = i;
