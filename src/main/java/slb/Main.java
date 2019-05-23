@@ -82,7 +82,7 @@ public class Main {
         }
 
         if (simulatorType == 7) {
-            delta = Float.parseFloat(args[8]);
+            delta = Float.parseFloat(args[6]);
         }
 
 
