@@ -73,8 +73,8 @@ public class LBDB implements LoadBalancer {
         }
         elementCount[source]++;
 
-        Vk = map.get(key);
         map = lists.get(source);
+        Vk = map.get(key);
         if (Vk == null) {
             Vk = new HashSet<>();
             map.put(key, Vk);

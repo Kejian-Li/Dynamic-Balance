@@ -76,7 +76,6 @@ public class Main {
             threshold = Integer.parseInt(args[6]);
         }
 
-
         if (simulatorType == 4 || simulatorType == 7) {
             epsilon = Float.parseFloat(args[7]);
         }
