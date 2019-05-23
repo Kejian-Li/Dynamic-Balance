@@ -26,12 +26,13 @@ public class StreamItemReader {
 		if (line == null || line.length() == 0)
 			return null;
 
-		String[] tokens = line.split("\t");
+//		String[] tokens = line.split("\t");
+		String[] tokens = line.split("\\s+");
 		if (tokens.length < 2)
 			return null;
 
 		long timestamp = Long.parseLong(tokens[0]);
-		String[] words = tokens[1].split(" ");
-		return new StreamItem(timestamp, Arrays.asList(words));
+//		String[] words = tokens[1].split(" ");
+		return new StreamItem(timestamp, Arrays.asList(tokens[1], tokens[2], tokens[3]));
 	}
 }
