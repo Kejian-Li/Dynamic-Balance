@@ -2,7 +2,8 @@ package slb;
 
 public enum TimeGranularity {
 	MINUTE(60),
-	HALFHOUR(30 * 60), HOUR(60 * 60);
+	HALFHOUR(30 * 60),
+	HOUR(60 * 60);
 	
 	private int seconds;
 

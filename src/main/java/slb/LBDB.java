@@ -1,14 +1,11 @@
 package slb;
 
-import com.clearspring.analytics.stream.StreamSummary;
-import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import com.lossycounting.LossyCountingModel;
+import sun.plugin.dom.exception.InvalidStateException;
+import util.FrequencyException;
+import util.LossyCounting;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class LBDB implements LoadBalancer {
@@ -23,15 +20,15 @@ public class LBDB implements LoadBalancer {
 
     private long[][] localWorkload;
 
-    private Map<Integer, StreamSummary<String>> map;
 
-    private HashFunction hash;
-
-    private long messageCount[];
+    private long elementCount[]; // count of element in upstream sources
 
     private float imbalance = 0.0001f;   // current load imbalance
 
-    private LossyCountingModel<Object> model;
+    private double error = delta * 0.1;
+
+    private List<LossyCounting> lossyCountings;
+    private ArrayList<HashMap<Object, HashSet<Integer>>> lists;
 
     public LBDB(List<Server> nodes, int numSources, int delta, float epsilon) {
 
@@ -52,53 +49,91 @@ public class LBDB implements LoadBalancer {
             localWorkload[i] = new long[nodes.size()];
         }
 
-        this.map = new HashMap<>();
+        this.elementCount = new long[numSources];
+
+        this.lossyCountings = new ArrayList<>(numSources);
+        lists = new ArrayList<>(); // for Vk;
         for (int i = 0; i < numSources; i++) {
-            map.put(i, new StreamSummary<String>(Constants.STREAM_SUMMARY_CAPACITY)); // frequent keys in upstream nodes
+            lossyCountings.add(new LossyCounting<>(error));
+            lists.add(new HashMap<Object, HashSet<Integer>>());
         }
-
-        this.messageCount = new long[numSources];
-
-        hash = Hashing.murmur3_128();
-
-        this.model = new LossyCountingModel<>(delta, error);
     }
 
-    private long totalElement = 0;
-    private long averageLoad = 0;
-    private long maxLoad;
-
-    private double error = 0.1 * delta;
-
+    private int source = 0; // index of downstream sources: [0, numSources - 1]
+    private LossyCounting<Object> lossyCounting;
+    private HashMap<Object, HashSet<Integer>> map; // for Vk: key => set(index of server)
+    private HashSet<Integer> Vk;
 
     @Override
     public Server getSever(long timestamp, Object key) {
-        totalElement++;
-        Arrays.sort(messageCount);
-        maxLoad = messageCount[serverNum - 1];
-        averageLoad = totalElement / serverNum;
-        imbalance = (maxLoad / averageLoad) - 1;  // definition of Load Imbalance: LI = (max - avg) / avg
+        // emulate to emit the key from downstream sources in round-robin fashion
+        elementCount[source]++;
+        source++;
+        if (source == numSources - 1) {
+            source = 0;
+        }
+        elementCount[source]++;
 
-        int i; // index of chosen downstream parallel server
+        Vk = map.get(key);
+        map = lists.get(source);
+        if (Vk == null) {
+            Vk = new HashSet<>();
+            map.put(key, Vk);
+        }
 
-        float f = 0.0f;   //////////////////// get frequency of given key
+        int selected; // index of chosen server
+        float f = 0.0f; // frequency of key
+        lossyCounting = lossyCountings.get(source);
+        try {
+            lossyCounting.add(key);
+            f = lossyCounting.estimateCount(key) / elementCount[source];
+        } catch (FrequencyException e) {
+            System.out.println(e);
+        }
 
         if (f <= delta * serverNum) {
-            i = Math.abs(hash.hashBytes(key.toString().getBytes()).asInt() % serverNum);
+            selected = Math.abs(Hashing.murmur3_128().hashBytes(key.toString().getBytes()).asInt() % serverNum);
         } else if (imbalance <= epsilon) {
-            i = findLeastLoadOneInVk();
+            selected = findLeastLoadOneInVk();
         } else {
-            i = findLeastLoadOneInV();
+            selected = findLeastLoadOneInV();
         }
-        return nodes.get(i);
+
+        Vk.add(selected);  // selected server now contain given key
+
+        localWorkload[source][selected]++;
+        return nodes.get(selected);
     }
 
-    private int findLeastLoadOneInVk() {  //Vk is set of servers which received key k
-        return 0;
+    private int findLeastLoadOneInVk() {  //Vk: received key
+        int min = 0;
+        Iterator<Integer> it = Vk.iterator();
+        if (Vk.size() < 1) {
+            throw new InvalidStateException("Vk is null");
+        }
+        long minOne = localWorkload[source][it.next()];
+
+        int temp;
+        while (it.hasNext()) {
+            temp = it.next();
+            if (localWorkload[source][temp] < minOne) {
+                minOne = localWorkload[source][temp];
+                min = temp;
+            }
+        }
+        return min;
     }
 
-    private int findLeastLoadOneInV() {
-        return 0;
+    private int findLeastLoadOneInV() {  // V: all of downstream servers
+        int min = 0;
+        long minOne = localWorkload[source][0];
+        for (int i = 1; i < nodes.size(); i++) {
+            if (localWorkload[source][i] < minOne) {
+                minOne = localWorkload[source][i];
+                min = i;
+            }
+        }
+        return min;
     }
 
 }

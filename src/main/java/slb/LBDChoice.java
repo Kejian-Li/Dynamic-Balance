@@ -89,7 +89,7 @@ public class LBDChoice implements LoadBalancer {
 				value4 = Math.pow(value2, 2);
 				sum2 = pTop+((pHead.probability-pTop)*value3)+(pTail*value4);
 				d++;
-			}while((d<=this.serversNo) && ((sum1 > (val3+epsilon)) || (sum2 > (value2+epsilon))));			
+			}while((d<=this.serversNo) && ((sum1 > (0+epsilon)) || (sum2 > (value2+epsilon))));
 			Choice = d-1;
 		}
 		
@@ -124,7 +124,7 @@ public class LBDChoice implements LoadBalancer {
 		return index;
 	}
 	public HashMap<String,Long> getTopK(StreamSummary<String> topk, float probability, Long totalItems) {
-		HashMap<String,Long> returnList = new HashMap<String,Long>();
+		HashMap<String,Long> returnList = new HashMap<>();
 		List<Counter<String>> counters = topk.topK(topk.getCapacity()); 
 		
 		for(Counter<String> counter : counters)  {

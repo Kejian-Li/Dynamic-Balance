@@ -13,7 +13,7 @@ public class ServerStats implements Comparable<ServerStats> {
 		
 	private int wordCount = 0;
 	private int transitions = 0;
-	private Set<String> dictionary = new HashSet<String>();
+	private Set<String> dictionary = new HashSet<>();
 
 	public void accumulate(ServerStats other) {
 		wordCount += other.wordCount;
