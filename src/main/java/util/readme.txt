@@ -1,0 +1,1 @@
+Algorithm Classes in this package is from Open Source in github: https://github.com/mayconbordin/streaminer
