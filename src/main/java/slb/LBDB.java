@@ -60,24 +60,14 @@ public class LBDB implements LoadBalancer {
 
     private int source = 0; // index of downstream sources: [0, numSources - 1]
     private LossyCounting<Object> lossyCounting;
-    private HashMap<Object, HashSet<Integer>> map; // for Vk: key => set(index of server)
-    private HashSet<Integer> Vk;
 
     @Override
     public Server getSever(long timestamp, Object key) {
         // emulate to emit the key from downstream sources in round-robin fashion
         elementCount[source]++;
         source++;
-        if (source == numSources - 1) {
+        if (source == numSources) {
             source = 0;
-        }
-        elementCount[source]++;
-
-        map = lists.get(source);
-        Vk = map.get(key);
-        if (Vk == null) {
-            Vk = new HashSet<>();
-            map.put(key, Vk);
         }
 
         int selected; // index of chosen server
@@ -85,18 +75,33 @@ public class LBDB implements LoadBalancer {
 
         if (f <= delta * serverNum) {
             selected = Math.abs(Hashing.murmur3_128().hashBytes(key.toString().getBytes()).asInt() % serverNum);
+            addKeyIntoVk(key, selected);
         } else {
             imbalance = computeCurrentImbalance();
             if (imbalance <= epsilon) {
                 selected = findLeastLoadOneInVk();
             } else {
                 selected = findLeastLoadOneInV();
+                addKeyIntoVk(key, selected);
             }
         }
-        Vk.add(selected);  // selected server now contain given key
 
         localWorkload[source][selected]++;
         return nodes.get(selected);
+    }
+
+    private HashMap<Object, HashSet<Integer>> map; // for Vk: key => set(index of server)
+    private HashSet<Integer> Vk;
+
+    // add selected index into Vk
+    private void addKeyIntoVk(Object key, int selected) {
+        map = lists.get(source);
+        Vk = map.get(key);
+        if (Vk == null) {
+            Vk = new HashSet<>();
+            map.put(key, Vk);
+        }
+        Vk.add(selected);
     }
 
     private float getFrequency(Object key) {
