@@ -1,4 +1,4 @@
-package util;
+package util.load;
 
 /**
  * {@link CountEntry}, extended with a field maxError.

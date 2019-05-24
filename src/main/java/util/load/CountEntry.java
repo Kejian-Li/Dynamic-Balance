@@ -1,4 +1,4 @@
-package util;
+package util.load;
 
 import java.io.Serializable;
 import org.slf4j.Logger;

@@ -1,13 +1,12 @@
 package slb;
 
 import com.google.common.hash.Hashing;
-import util.CountEntry;
-import util.FrequencyException;
-import util.LossyCounting;
+import util.cardinality.HyperLogLog;
+import util.load.CountEntry;
+import util.load.FrequencyException;
+import util.load.LossyCounting;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 
@@ -16,25 +15,28 @@ public class LBDB implements LoadBalancer {
     private List<Server> nodes;
     private int numSources;
     private int serverNum;
+    private long[][] localLoad;  // local load for sources
 
     private long loadSamplingGranularity;
 
-    private double delta;  // frequency threshold
-    private double imbalance = 0.0f;   // current load imbalance
-    private double epsilon;  // load imbalance threshold\
-    private double error = delta * 0.1;  // lossy counting error
+    private float delta;  // default = 0.2
+    private double error;  // lossy counting error
+    private float alpha;  // load and cardinality balance factor, default = 0.5
 
     private List<LossyCounting> lossyCountings;
-    private ArrayList<LocalLoad> localLoads;
+    private ArrayList<HyperLogLog[]> lists;
+    private final static double DEFAULT_STANDARD_DEVIATION = 0.4;  
 
-    public LBDB(List<Server> nodes, int numSources, double delta, double epsilon) {
+    public LBDB(List<Server> nodes, int numSources, float delta, float alpha) {
 
         this.nodes = nodes;
         this.serverNum = nodes.size();
         this.numSources = numSources;
-
         this.delta = delta;
-        this.epsilon = epsilon;
+        this.error = delta * 0.1;
+        this.alpha = alpha;
+
+        localLoad = new long[numSources][serverNum];
 
         this.loadSamplingGranularity = nodes.get(0).getGranularity();
 
@@ -43,46 +45,49 @@ public class LBDB implements LoadBalancer {
         }
 
         this.lossyCountings = new ArrayList<>(numSources);
-        localLoads = new ArrayList<>();
+        this.lists = new ArrayList<>();
 
         for (int i = 0; i < numSources; i++) {
             lossyCountings.add(new LossyCounting<>(error));
-            localLoads.add(new LocalLoad(serverNum));
+            HyperLogLog[] hyperLogLogs = new HyperLogLog[serverNum];
+            for (int j = 0; j < serverNum; j++) {
+                hyperLogLogs[j] = new HyperLogLog(DEFAULT_STANDARD_DEVIATION);
+            }
+            lists.add(hyperLogLogs);
         }
     }
 
     private int source = 0; // index of downstream sources: [0, numSources - 1]
     private LossyCounting<Object> lossyCounting;
-    private LocalLoad localLoad;
+    private HyperLogLog[] hyperLogLogs;
+    private double[] scores = new double[serverNum];  // reuse for each incoming element
+
 
     @Override
     public Server getSever(long timestamp, Object key) {
-        localLoad = localLoads.get(source);
         lossyCounting = lossyCountings.get(source);
+        hyperLogLogs = lists.get(source);
 
         int selected; // index of chosen server
         List<CountEntry<Object>> frequentItems = null;
         try {
             lossyCounting.add(key);
             frequentItems = lossyCounting.getFrequentItems(delta);
-        }catch (FrequencyException e) {
+        } catch (FrequencyException e) {
             System.out.println(e);
         }
 
         if (!frequentItems.contains(key)) {
             selected = hash(key);
         } else {
-            localLoad.addOriginalIndexIntoVk(key);
-            imbalance = updateImbalance();
-            if (imbalance <= epsilon) {  // current imbalance is less than threshold of imbalance epsilon
-                selected = localLoad.findIndexOfMinLoadInVk(key);
-            } else {
-                selected = localLoad.getIndexOfMinLoad();
-                localLoad.addNewIndexIntoVk(key, selected);
+            for (int i = 0; i < serverNum; i++) {
+                scores[i] = getScore(i);
             }
+            selected = findIndexOfMaxScore();
         }
 
-        localLoad.increaseCount(selected);
+        localLoad[source][selected]++;  // update local load for selected node
+        hyperLogLogs[selected].offer(key);  // update cardinality for selected node
 
         source++;  // next source to emit the key in round-robin fashion
         if (source == numSources) {
@@ -91,9 +96,20 @@ public class LBDB implements LoadBalancer {
         return nodes.get(selected);
     }
 
-    private double updateImbalance() {
-        double averageCount = lossyCounting.size() / serverNum;
-        return (localLoad.getMaxLoad() / averageCount) - 1;  // Load Imbalance: (Max - Avg) / Avg
+    private double getScore(int i) {
+        return alpha * hyperLogLogs[i].cardinality() + (1 - alpha) * localLoad[source][i];
+    }
+
+    private int findIndexOfMaxScore() {
+        int maxIndex = 0;
+        double maxScore = scores[0];
+        for (int i = 0; i < serverNum; i++) {
+            if (maxScore < scores[i]) {
+                maxScore = scores[i];
+                maxIndex = i;
+            }
+        }
+        return maxIndex;
     }
 
     private int hash(Object key) {

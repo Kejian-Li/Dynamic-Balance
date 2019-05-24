@@ -69,19 +69,22 @@ public class Main {
 
         // default
         int threshold = 5;   // frequency threshold of Head
-        float delta = 0.2f;
-        float epsilon = 0.0001f;   // imbalance threshold
-        
+        float epsilon = 0.001f;   // lossy count frequency threshold
+
         if (simulatorType == 5 || simulatorType == 6 || simulatorType == 3 || simulatorType == 4) {
             threshold = Integer.parseInt(args[6]);
         }
 
-        if (simulatorType == 4 || simulatorType == 7) {
+        if (simulatorType == 4) {
             epsilon = Float.parseFloat(args[7]);
         }
 
+        //default
+        float delta = 0.2f;
+        float alpha = 0.5f;
         if (simulatorType == 7) {
             delta = Float.parseFloat(args[6]);
+            alpha = Float.parseFloat(args[7]);
         }
 
 
@@ -123,7 +126,7 @@ public class Main {
                         numSources, threshold));
             } else if (simulatorType == 7) {
                 hashes.put(tg, new LBDB(timeSeries.get(tg),
-                        numSources, delta, epsilon));
+                        numSources, delta, alpha));  //epsilon -> alpha
             }
         }
 
