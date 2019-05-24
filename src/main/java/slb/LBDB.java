@@ -63,12 +63,7 @@ public class LBDB implements LoadBalancer {
 
     @Override
     public Server getSever(long timestamp, Object key) {
-        // emulate to emit the key from downstream sources in round-robin fashion
         elementCount[source]++;
-        source++;
-        if (source == numSources) {
-            source = 0;
-        }
 
         int selected; // index of chosen server
         float f = getFrequency(key);
@@ -87,6 +82,11 @@ public class LBDB implements LoadBalancer {
         }
 
         localWorkload[source][selected]++;
+
+        source++;  // next source to emit the key in round-robin fashion
+        if (source == numSources) {
+            source = 0;
+        }
         return nodes.get(selected);
     }
 
