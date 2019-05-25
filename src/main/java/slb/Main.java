@@ -218,7 +218,6 @@ public class Main {
         System.out.println();
         System.out.println();
         System.out.println();
-        System.out.println();
 
         // output for cardinality imbalance
         long[] totalCardinality;
@@ -242,6 +241,7 @@ public class Main {
             System.out.print(localCardinality + ",  ");
         }
         System.out.println();
+        System.out.println();
 
 
         // print final stats
@@ -254,6 +254,7 @@ public class Main {
         for (BufferedWriter bw : outputs.values())
             bw.close();
 
+        System.out.println( );
         System.out.println("Finished reading items\nTotal items: " + itemCount);
     }
 
