@@ -29,7 +29,7 @@ public class LBDB implements LoadBalancer {
     private List<LossyCounting> lossyCountings;
     private HyperLogLog[] totalCardinality; // for upstream nodes
     private ArrayList<HyperLogLog[]> cardinalityLists;  // for downstream servers
-    private final static int DEFAULT_LOG2M = 6;
+    private final static int DEFAULT_LOG2M = 12;
 
     public LBDB(List<Server> nodes, int numSources, float delta, float alpha) {
 
