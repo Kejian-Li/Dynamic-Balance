@@ -50,6 +50,7 @@ public class LBDB implements LoadBalancer {
         }
 
         this.lossyCountings = new ArrayList<>(numSources);
+        nodesCardinality = new HyperLogLog[numSources];
         this.lists = new ArrayList<>();
 
         for (int i = 0; i < numSources; i++) {
