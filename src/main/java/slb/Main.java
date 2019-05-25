@@ -217,6 +217,8 @@ public class Main {
         }
         System.out.println();
         System.out.println();
+        System.out.println();
+        System.out.println();
 
         // output for cardinality imbalance
         long[] totalCardinality;
@@ -224,20 +226,20 @@ public class Main {
 
         totalCardinality = balancer.getTotalCardinality();
         serversCardinality = balancer.getLocalCardinality();
-        System.out.println("upstream sources load: ");
+        System.out.println("upstream sources cardinality: ");
         for (int i = 0; i < numSources - 1; i++) {
             System.out.print(totalCardinality[i] + ",  ");
         }
         System.out.println(totalCardinality[numSources - 1]);
         System.out.println();
 
-        System.out.println("downstream servers load: ");
+        System.out.println("downstream servers cardinality: ");
         for (int i = 0; i < numServers; i++) {
             long localCardinality = 0;
             for (int j = 0; j < numSources; j++) {
                 localCardinality += serversCardinality[j][i];
             }
-            System.out.println(localCardinality + ",  ");
+            System.out.print(localCardinality + ",  ");
         }
         System.out.println();
 
