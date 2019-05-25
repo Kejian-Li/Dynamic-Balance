@@ -203,8 +203,9 @@ public class Main {
                 for (int j = 0; j < numSources; j++) {
                     serverLoad += localLoad[j][i];
                 }
-                System.out.print(serverLoad + ",");
+                System.out.print(serverLoad + ", ");
             }
+            System.out.println();
         }
 
         // print final stats
