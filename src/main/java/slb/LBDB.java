@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class LBDB implements LoadBalancer {
+public class LBDB implements MyLoadBalancer {
 
     private List<Server> nodes;
     private int numSources;
@@ -75,7 +75,7 @@ public class LBDB implements LoadBalancer {
         lossyCounting = lossyCountings.get(source);
         hyperLogLogs = cardinalityLists.get(source);
 
-        totalLoad[source]++;  // record total load
+        totalLoad[source]++;  // record total load every source
         totalCardinality[source].offer(key); // record cardinality through this source
 
         int selected; // index of chosen server
@@ -142,4 +142,13 @@ public class LBDB implements LoadBalancer {
         return Math.abs(Hashing.murmur3_128().hashBytes(key.toString().getBytes()).asInt() % serverNum);
     }
 
+    @Override
+    public long[][] getLocalLoad() {
+        return localLoad;
+    }
+
+    @Override
+    public long[] getTotalLoad() {
+        return totalLoad;
+    }
 }

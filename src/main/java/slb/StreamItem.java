@@ -9,7 +9,7 @@ import java.util.List;
  * payload and is represented as list of strings.
  */
 public class StreamItem implements Iterable<String> {
-	private long timestamp;
+	private long timestamp;  // Unix notation with milliseconds precision for wikipedia data set
 	private List<String> words;
 
 	StreamItem(long timestamp, List<String> words) {

@@ -69,7 +69,8 @@ public class Main {
 
         // default
         int threshold = 5;   // frequency threshold of Head
-        float epsilon = 0.001f;   // lossy count frequency threshold
+
+        float epsilon = 0.0001f;   // lossy count frequency threshold
 
         if (simulatorType == 5 || simulatorType == 6 || simulatorType == 3 || simulatorType == 4) {
             threshold = Integer.parseInt(args[6]);
@@ -79,9 +80,8 @@ public class Main {
             epsilon = Float.parseFloat(args[7]);
         }
 
-        //default
         float delta = 0.2f;
-        float alpha = 0.5f;
+        float alpha = 0.4f;
         if (simulatorType == 7) {
             delta = Float.parseFloat(args[6]);
             alpha = Float.parseFloat(args[7]);
@@ -165,24 +165,46 @@ public class Main {
             currentTimestamp = item.getTimestamp();
             EnumSet<TimeGranularity> statsToConsume = EnumSet.noneOf(TimeGranularity.class); // empty set of time series
 
-            for (int i = 0; i < item.getWordsSize(); i++) {
-                String word = item.getWord(i);
-                for (Entry<TimeGranularity, LoadBalancer> entry : hashes.entrySet()) {
+            String key = item.getWord(0);
+            for (Entry<TimeGranularity, LoadBalancer> entry : hashes.entrySet()) {
 
-                    LoadBalancer loadBalancer = entry.getValue();
-                    Server server = loadBalancer.getSever(currentTimestamp, word);
-                    boolean hasStatsReady = server.updateStats(currentTimestamp, word);
+                LoadBalancer loadBalancer = entry.getValue();
+                Server server = loadBalancer.getSever(currentTimestamp, key);
+                boolean hasStatsReady = server.updateStats(currentTimestamp, key);
 
-                    if (hasStatsReady)
-                        statsToConsume.add(entry.getKey());
-                }
+                if (hasStatsReady)
+                    statsToConsume.add(entry.getKey());
             }
 
-            for (TimeGranularity key : statsToConsume) {
-                printStatsToConsume(timeSeries.get(key), outputs.get(key), currentTimestamp);
+
+            for (TimeGranularity granularity : statsToConsume) {
+                printStatsToConsume(timeSeries.get(granularity), outputs.get(granularity), currentTimestamp);
             }
 
             item = reader.nextItem();
+        }
+
+        long[] totalLoad;
+        long[][] localLoad;
+
+        for (Entry<TimeGranularity, LoadBalancer> entry : hashes.entrySet()) {
+            MyLoadBalancer loadBalancer = (MyLoadBalancer) entry.getValue();
+            localLoad = loadBalancer.getLocalLoad();
+            totalLoad = loadBalancer.getTotalLoad();
+            System.out.println(entry.getKey().toString() + " =>");
+            System.out.println("upstream sources load: ");
+            for (int i = 0; i < numSources - 1; i++) {
+                System.out.print(totalLoad[i] + ", ");
+            }
+            System.out.println(totalLoad[numSources - 1]);
+            System.out.println("downstream servers load: ");
+            for (int i = 0; i < numServers; i++) {
+                long serverLoad = 0;
+                for (int j = 0; j < numSources; j++) {
+                    serverLoad += localLoad[j][i];
+                }
+                System.out.print(serverLoad + ",");
+            }
         }
 
         // print final stats

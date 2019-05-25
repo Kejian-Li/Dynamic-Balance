@@ -36,9 +36,9 @@ public class StreamItemReader {
 //		String[] words = tokens[1].split(" ");
 //		return new StreamItem(timestamp, Arrays.asList(words));
         String[] fields = line.split(" ");
-        long timestamp = Long.parseLong(fields[0]);
+        long timestamp = (long) Float.parseFloat(fields[1]);
         List<String> words = new ArrayList<>();
-        for(int i = 1; i < fields.length; i++) {
+        for(int i = 2; i < fields.length; i++) {
             words.add(fields[i]);
         }
         return new StreamItem(timestamp, words);
