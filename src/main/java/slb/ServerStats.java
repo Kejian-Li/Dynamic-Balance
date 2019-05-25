@@ -38,7 +38,7 @@ public class ServerStats implements Comparable<ServerStats> {
 		return (wordCount + " " + dictionary.size() + " " + transitions + "\t");
 	}
 
-	public void update(float timestamp, String word) {
+	public void update(long timestamp, String word) {
 		wordCount++;
 		dictionary.add(word);
 	}
