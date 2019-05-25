@@ -27,9 +27,9 @@ public class LBDB implements LoadBalancer {
     private float alpha;  // load and cardinality balance factor, default = 0.5
 
     private List<LossyCounting> lossyCountings;
-    private HyperLogLog[] nodesCardinality; // for upstream nodes
-    private ArrayList<HyperLogLog[]> lists;  // for downstream servers
-    private final static double DEFAULT_STANDARD_DEVIATION = 0.4;
+    private HyperLogLog[] totalCardinality; // for upstream nodes
+    private ArrayList<HyperLogLog[]> cardinalityLists;  // for downstream servers
+    private final static int DEFAULT_LOG2M = 6;
 
     public LBDB(List<Server> nodes, int numSources, float delta, float alpha) {
 
@@ -50,18 +50,18 @@ public class LBDB implements LoadBalancer {
         }
 
         this.lossyCountings = new ArrayList<>(numSources);
-        nodesCardinality = new HyperLogLog[numSources];
-        this.lists = new ArrayList<>();
+        totalCardinality = new HyperLogLog[numSources];
+        this.cardinalityLists = new ArrayList<>();
 
         for (int i = 0; i < numSources; i++) {
             lossyCountings.add(new LossyCounting<>(error));
-            nodesCardinality[i] = new HyperLogLog(DEFAULT_STANDARD_DEVIATION);
+            totalCardinality[i] = new HyperLogLog(DEFAULT_LOG2M);
 
             HyperLogLog[] hyperLogLogs = new HyperLogLog[serverNum];
             for (int j = 0; j < serverNum; j++) {
-                hyperLogLogs[j] = new HyperLogLog(DEFAULT_STANDARD_DEVIATION);
+                hyperLogLogs[j] = new HyperLogLog(DEFAULT_LOG2M);
             }
-            lists.add(hyperLogLogs);
+            cardinalityLists.add(hyperLogLogs);
         }
     }
 
@@ -73,10 +73,10 @@ public class LBDB implements LoadBalancer {
     @Override
     public Server getSever(long timestamp, Object key) {
         lossyCounting = lossyCountings.get(source);
-        hyperLogLogs = lists.get(source);
+        hyperLogLogs = cardinalityLists.get(source);
 
         totalLoad[source]++;  // record total load
-        nodesCardinality[source].offer(key); // record cardinality through this source
+        totalCardinality[source].offer(key); // record cardinality through this source
 
         int selected; // index of chosen server
         List<CountEntry<Object>> frequentItems = null;
@@ -111,7 +111,7 @@ public class LBDB implements LoadBalancer {
 
     private double getScore(int i, Object key) {
         try {
-            tempHyperLogLog = new HyperLogLog(DEFAULT_STANDARD_DEVIATION);
+            tempHyperLogLog = new HyperLogLog(DEFAULT_LOG2M);
             tempHyperLogLog.addAll(hyperLogLogs[i]);
         } catch (CardinalityMergeException e) {
             System.out.println(e);
@@ -122,7 +122,7 @@ public class LBDB implements LoadBalancer {
             indicator = 1;
         }
         tempHyperLogLog = null; // for GC
-        return indicator + alpha * (1 - hyperLogLogs[i].cardinality() / nodesCardinality[source].cardinality())
+        return indicator + alpha * (1 - hyperLogLogs[i].cardinality() / totalCardinality[source].cardinality())
                 + (1 - alpha) * (1 - localLoad[source][i] / totalLoad[source]);
     }
 
