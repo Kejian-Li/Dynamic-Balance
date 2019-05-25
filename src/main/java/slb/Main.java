@@ -184,29 +184,57 @@ public class Main {
             item = reader.nextItem();
         }
 
+
+        System.out.println();
+        System.out.println();
+        // output for load imbalance
         long[] totalLoad;
         long[][] localLoad;
 
-        for (Entry<TimeGranularity, LoadBalancer> entry : hashes.entrySet()) {
-            MyLoadBalancer loadBalancer = (MyLoadBalancer) entry.getValue();
-            localLoad = loadBalancer.getLocalLoad();
-            totalLoad = loadBalancer.getTotalLoad();
-            System.out.println(entry.getKey().toString() + " =>");
-            System.out.println("upstream sources load: ");
-            for (int i = 0; i < numSources - 1; i++) {
-                System.out.print(totalLoad[i] + ", ");
-            }
-            System.out.println(totalLoad[numSources - 1]);
-            System.out.println("downstream servers load: ");
-            for (int i = 0; i < numServers; i++) {
-                long serverLoad = 0;
-                for (int j = 0; j < numSources; j++) {
-                    serverLoad += localLoad[j][i];
-                }
-                System.out.print(serverLoad + ", ");
-            }
-            System.out.println();
+        MyLoadBalancer balancer = (MyLoadBalancer) hashes.entrySet().iterator().next();
+        localLoad = balancer.getLocalLoad();
+        totalLoad = balancer.getTotalLoad();
+        System.out.println("upstream sources load: ");
+        for (int i = 0; i < numSources - 1; i++) {
+            System.out.print(totalLoad[i] + ",  ");
         }
+        System.out.println(totalLoad[numSources - 1]);
+
+        System.out.println();
+        System.out.println("downstream servers load: ");
+        for (int i = 0; i < numServers; i++) {
+            long serverLoad = 0;
+            for (int j = 0; j < numSources; j++) {
+                serverLoad += localLoad[j][i];
+            }
+            System.out.print(serverLoad + ",  ");
+        }
+        System.out.println();
+        System.out.println();
+
+        // output for cardinality imbalance
+        long[] totalCardinality;
+        long[][] serversCardinality;
+
+        totalCardinality = balancer.getTotalCardinality();
+        serversCardinality = balancer.getLocalCardinality();
+        System.out.println("upstream sources load: ");
+        for (int i = 0; i < numSources - 1; i++) {
+            System.out.print(totalCardinality[i] + ",  ");
+        }
+        System.out.println(totalCardinality[numSources - 1]);
+        System.out.println();
+
+        System.out.println("downstream servers load: ");
+        for (int i = 0; i < numServers; i++) {
+            long localCardinality = 0;
+            for (int j = 0; j < numSources; j++) {
+                localCardinality += serversCardinality[j][i];
+            }
+            System.out.println(localCardinality + ",  ");
+        }
+        System.out.println();
+
 
         // print final stats
         for (TimeGranularity tg : TimeGranularity.values()) {

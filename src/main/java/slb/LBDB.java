@@ -151,4 +151,26 @@ public class LBDB implements MyLoadBalancer {
     public long[] getTotalLoad() {
         return totalLoad;
     }
+
+    @Override
+    public long[] getTotalCardinality() {
+        long[] result = new long[numSources];
+        for (int i = 0; i < numSources; i++) {
+            result[i] = totalCardinality[i].cardinality();
+        }
+        return result;
+    }
+
+    @Override
+    public long[][] getLocalCardinality() {
+        long[][] result = new long[numSources][serverNum];
+        HyperLogLog[] hyperLogLogs;
+        for (int i = 0; i < numSources; i++) {
+            hyperLogLogs = cardinalityLists.get(i);
+            for (int j = 0; j < serverNum; j++) {
+                result[i][j] = hyperLogLogs[j].cardinality();
+            }
+        }
+        return result;
+    }
 }
