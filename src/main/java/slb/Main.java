@@ -191,7 +191,13 @@ public class Main {
         long[] totalLoad;
         long[][] localLoad;
 
-        MyLoadBalancer balancer = (MyLoadBalancer) hashes.entrySet().iterator().next();
+        MyLoadBalancer balancer = null;
+
+        for (Entry<TimeGranularity, LoadBalancer> entry: hashes.entrySet()) {
+            balancer = (MyLoadBalancer) entry.getValue();
+            break;
+        }
+
         localLoad = balancer.getLocalLoad();
         totalLoad = balancer.getTotalLoad();
         System.out.println("upstream sources load: ");
