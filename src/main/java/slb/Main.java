@@ -21,11 +21,9 @@ public class Main {
     private static void ErrorMessage() {
         System.err.println("Choose the type of simulator using:");
         System.err
-                .println("1. Partial Key Grouping with multiple sources with local estimation from data: <SimulatorType inFileName outFileName serversNo initialTime NumSources>");
+                .println("1. PKG: <SimulatorType inFileName outFileName serversNo initialTime NumSources>");
         System.err
-                .println("2. Simple Consistent Hashing hash mode num of Servers: <SimulatorType inFileName outFileName serversNo initialTime>");
-
-        // threshold
+                .println("2. Hash: <SimulatorType inFileName outFileName serversNo initialTime>");
         System.err
                 .println("3. G-Choices : <SimulatorType inFileName outFileName serversNo initialTime>");
         System.err

@@ -43,4 +43,12 @@ public class StreamItemReader {
         }
         return new StreamItem(timestamp, words);
 	}
+
+	public void close() throws IOException{
+		try {
+			in.close();
+		}catch (IOException e) {
+			throw e;
+		}
+	}
 }
