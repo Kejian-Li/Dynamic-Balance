@@ -42,7 +42,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>slb.Main</mainClass>
+                            <mainClass>slb2.Main</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
