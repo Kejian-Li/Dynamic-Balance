@@ -146,12 +146,13 @@ public class Main {
         int sourceIndex = 0;
         Operator operator;
 
+        long wordCount = 0;
         // core loop
         while (item != null) {
             for (int i = 0; i < item.length; i++) {
-                if (++itemCount % PRINT_INTERVAL == 0) {
+                if (++wordCount % PRINT_INTERVAL == 0) {
                     System.out.println("Read " + itemCount / 1000000
-                            + "M tweets.\tSimulation time: "
+                            + "M words.\tSimulation time: "
                             + (System.currentTimeMillis() - simulationStartTime) + " ms");
                 }
 
@@ -168,7 +169,7 @@ public class Main {
 
         reader.close();
         System.out.println();
-        System.out.println("Finished reading items\nTotal items: " + itemCount);
+        System.out.println("Finished reading items\nTotal items: " + wordCount);
     }
 
     private static void outputResult(Operator[] downstreamOperators, int numServers) {

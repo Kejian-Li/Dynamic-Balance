@@ -19,11 +19,15 @@ public class CsvItemReader {
     public String[] nextItem() throws IOException {
         String text;
         try {
-            reader.readRecord();
-            text = reader.get(4); // tweet id = 0,...., text = 4,...
+            if (reader.readRecord()) {
+                text = reader.get(4); // tweet id = 0,...., text = 4,...
+            } else {
+                return null;
+            }
         } catch (IOException e) {
             throw e;
         }
+
         String[] words = text.split(" ");  // split text into words as keys
         return words;
     }
