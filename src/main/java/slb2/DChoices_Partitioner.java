@@ -9,28 +9,28 @@ import slb.Constants;
 import java.util.HashMap;
 import java.util.List;
 
-public class DChoicesPartitioner implements StreamPartitioner {
+public class DChoices_Partitioner implements StreamPartitioner {
 
     private int numServers;
     private long localLoad[];
     private StreamSummary<String> streamSummary;
 
     private Seed seed;
-    private HashFunction[] hash;
+    private HashFunction[] hashes;
     private long totalElement;
     private int threshold;
     private float epsilon;
 
-    public DChoicesPartitioner(int numServers, int threshold, float epsilon) {
+    public DChoices_Partitioner(int numServers, int threshold, float epsilon) {
         this.numServers = numServers;
         this.localLoad = new long[numServers];
         this.streamSummary = new StreamSummary<>(Constants.STREAM_SUMMARY_CAPACITY);
         this.seed = new Seed(numServers);
 
-        hash = new HashFunction[numServers];
+        hashes = new HashFunction[numServers];
 
-        for (int i = 0; i < hash.length; i++) {
-            hash[i] = Hashing.murmur3_128(seed.getSeed(i));
+        for (int i = 0; i < hashes.length; i++) {
+            hashes[i] = Hashing.murmur3_128(seed.getSeed(i));
         }
         this.threshold = threshold;
         this.epsilon = epsilon;
@@ -73,13 +73,13 @@ public class DChoicesPartitioner implements StreamPartitioner {
             choices = d - 1;
         }
 
-        //Hash the key accordingly
+        //Hash the Tail accordingly
         int i = 0;
         int[] selected = new int[choices];
 
         if (choices < numServers) {
             while (i < choices) {
-                selected[i] = Math.abs(hash[i].hashBytes(key.toString().getBytes()).asInt() % numServers);
+                selected[i] = Math.abs(hashes[i].hashBytes(key.toString().getBytes()).asInt() % numServers);
                 i++;
             }
         } else {
@@ -89,15 +89,15 @@ public class DChoicesPartitioner implements StreamPartitioner {
             }
         }
 
-        int chosen = selectMinLoad(localLoad, selected);
+        int chosen = chooseMinLoad(localLoad, selected);
         localLoad[chosen]++;
 
         return chosen;
     }
 
-    private int selectMinLoad(long[] localLoad, int[] selected) {
-        int min = 0;
-        long minOne = localLoad[0];
+    private int chooseMinLoad(long[] localLoad, int[] selected) {
+        int min = selected[0];
+        long minOne = localLoad[selected[0]];
         for (int i = 1; i < selected.length; i++) {
             if (localLoad[selected[i]] < minOne) {
                 minOne = localLoad[selected[i]];

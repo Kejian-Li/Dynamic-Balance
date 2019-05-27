@@ -3,7 +3,7 @@ package slb2;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 
-public class PKGPartitioner implements StreamPartitioner {
+public class PKG_Partitioner implements StreamPartitioner {
 
     private int numServers;
     private long[] localLoad;
@@ -13,7 +13,7 @@ public class PKGPartitioner implements StreamPartitioner {
 
     private int CHOICES = 2;
 
-    public PKGPartitioner(int numServers) {
+    public PKG_Partitioner(int numServers) {
         this.numServers = numServers;
         localLoad = new long[numServers];
         seed = new Seed(numServers);
@@ -27,13 +27,15 @@ public class PKGPartitioner implements StreamPartitioner {
 
     @Override
     public int partition(Object key) {
-        selected[0] = hash[0].hashBytes(key.toString().getBytes()).asInt() % numServers;
-        selected[1] = hash[1].hashBytes(key.toString().getBytes()).asInt() % numServers;
-        return selectMinLoad();
+        selected[0] = Math.abs(hash[0].hashBytes(key.toString().getBytes()).asInt() % numServers);
+        selected[1] = Math.abs(hash[1].hashBytes(key.toString().getBytes()).asInt() % numServers);
+        return chooseMinLoad();
     }
 
-    private int selectMinLoad() {
-        return localLoad[selected[0]] < localLoad[selected[1]] ? selected[0] : selected[1];
+    private int chooseMinLoad() {
+        int chosen = localLoad[selected[0]] < localLoad[selected[1]] ? selected[0] : selected[1];
+        localLoad[chosen]++;
+        return chosen;
     }
 
 }

@@ -2,12 +2,12 @@ package slb2;
 
 import java.util.Random;
 
-public class SGPartitioner implements StreamPartitioner {
+public class SG_Partitioner implements StreamPartitioner {
 
     private int numServers;
     private int nextIndex;
 
-    public SGPartitioner(int numSevers) {
+    public SG_Partitioner(int numSevers) {
         this.numServers = numSevers;
         nextIndex = new Random().nextInt(numSevers);
     }

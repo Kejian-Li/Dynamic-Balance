@@ -14,7 +14,7 @@ public class Main {
 
 
     public static void main(String[] args) throws Exception {
-        if (args.length < 5) {
+        if (args.length < 4) {
             ErrorMessage();
         }
 
@@ -27,11 +27,11 @@ public class Main {
         int threshold = 5;   // frequency threshold of Head
         float epsilon = 0.0001f;   // lossy count frequency threshold
 
-        if (simulatorType == 5 || simulatorType == 6 || simulatorType == 3 || simulatorType == 4) {
+        if (simulatorType == 3 || simulatorType == 4 || simulatorType == 5) {
             threshold = Integer.parseInt(args[4]);
         }
 
-        if (simulatorType == 4) {
+        if (simulatorType == 3) {
             epsilon = Float.parseFloat(args[5]);
         }
 
@@ -47,15 +47,15 @@ public class Main {
         if (simulatorType == 1) {
             partitioner = new HashPartitioner(numServers);
         } else if (simulatorType == 2) {
-            partitioner = new PKGPartitioner(numServers);
-//        } else if (simulatorType == 3) {
-//            partitioner = new LBGreedyChoice(threshold));
+            partitioner = new PKG_Partitioner(numServers);
+        } else if (simulatorType == 3) {
+            partitioner = new DChoices_Partitioner(numServers, threshold, epsilon);
         } else if (simulatorType == 4) {
-            partitioner = new DChoicesPartitioner(numServers, epsilon);
-//        } else if (simulatorType == 5) {
-//            partitioner = new LBWChoice(threshold));
+            partitioner = new WChoices_Partitioner(numServers, threshold);
+        } else if (simulatorType == 5) {
+            partitioner = new RR_Partitioner(numServers, threshold);
         } else if (simulatorType == 6) {
-            partitioner = new SGPartitioner(numServers);
+            partitioner = new SG_Partitioner(numServers);
         } else if (simulatorType == 7) {
             partitioner = new HolisticPartitioner(numServers, delta, alpha);  //epsilon -> alpha
         }
@@ -72,8 +72,10 @@ public class Main {
 
 
         startEmulate(inFileName);
-        outputResult(downstreamOperators, numSources, numServers);
+        outputResult(downstreamOperators, numServers);
     }
+
+    private static int itemCount = 0;
 
     private static void startEmulate(String inFileName) throws Exception {
         // read items and route them to the correct server
@@ -95,7 +97,6 @@ public class Main {
         StreamItemReader reader = new StreamItemReader(in);
         StreamItem item = reader.nextItem();
         long currentTimestamp = 0;
-        int itemCount = 0;
 
         int sourceIndex = 0;
         Operator operator;
@@ -108,7 +109,7 @@ public class Main {
             currentTimestamp = item.getTimestamp();
             String key = item.getWord(0);
 
-            operator = upstreamOperators[sourceIndex];
+            operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
             operator.processElement(currentTimestamp, key);
 
             sourceIndex++;
@@ -124,46 +125,69 @@ public class Main {
 
     }
 
-    private static void outputResult(Operator[] downstreamOperators, int numSources, int numServers) {
+    private static void outputResult(Operator[] downstreamOperators, int numServers) {
         System.out.println();
         System.out.println();
 
         // output for load imbalance
         System.out.println("<1> Load: ");
-        System.out.println();
+        long maxLoad = downstreamOperators[0].getLoad();
 
-
-        System.out.println();
-        System.out.println("Cardinality Imbalance: ");
-        System.out.println();
-    }
-
-    private static long findMax(long[] array) {
-        long maxOne = array[0];
-        for (int i = 1; i < array.length; i++) {
-            if (maxOne < array[i]) {
-                maxOne = array[i];
+        long temp;
+        for (int i = 0; i < numServers - 1; i++) {
+            temp = downstreamOperators[i].getLoad();
+            if (maxLoad < temp) {
+                maxLoad = temp;
             }
+            System.out.print(temp + ",  ");
         }
-        return maxOne;
+        System.out.println(downstreamOperators[numServers - 1].getLoad());
+        System.out.println();
+
+        double averageLoad = itemCount / numServers;
+        double loadImbalance = (maxLoad / averageLoad) - 1;
+        System.out.println("Load Imbalance: " + loadImbalance);
+        System.out.println();
+
+        System.out.println("<2> Cardinality: ");
+        long maxCardinality = downstreamOperators[0].getCardinality();
+        long totalCardinality = 0;
+        for (int i = 0; i < numServers - 1; i++) {
+            temp = downstreamOperators[i].getCardinality();
+            totalCardinality += temp;
+            if (maxCardinality < temp) {
+                maxCardinality = temp;
+            }
+            System.out.print(temp + ",  ");
+        }
+        temp = downstreamOperators[numServers - 1].getCardinality();
+        totalCardinality += temp;
+        System.out.println(temp);
+
+        System.out.println();
+        double averageCardinality = totalCardinality / numServers;
+        double cardinalityImbalance = (maxCardinality / averageCardinality) - 1;
+        System.out.println("Cardinality Imbalance: " + cardinalityImbalance);
+        System.out.println();
     }
 
     private static void ErrorMessage() {
         System.err.println("Choose the type of simulator using:");
+
         System.err
-                .println("1. PKG: <SimulatorType inFileName outFileName serversNo initialTime NumSources>");
+                .println("1. Hash: <SimulatorType inFileName numServers >");
         System.err
-                .println("2. Hash: <SimulatorType inFileName outFileName serversNo initialTime>");
+                .println("2. PKG: <SimulatorType inFileName numSources numServers>");
         System.err
-                .println("3. G-Choices : <SimulatorType inFileName outFileName serversNo initialTime>");
+                .println("3. D-Choices : <SimulatorType inFileName numServers>"); // epsilon
         System.err
-                .println("4. D-Choices : <SimulatorType inFileName outFileName serversNo initialTime>"); // epsilon
+                .println("4. W-Choices : <SimulatorType inFileName numServers>");
         System.err
-                .println("5. W-Choices : <SimulatorType inFileName outFileName serversNo initialTime>");
+                .println("5. Round Robin: <SimulatorType inFileName numServers>");
         System.err
-                .println("6. Round Robin: <SimulatorType inFileName outFileName serversNo initialTime>");
+                .println("6. Shuffle: <SimulatorType inFileName numServer>");
         System.err
-                .println("7. Round Robin: <SimulatorType inFileName outFileName serversNo initialTime>");
+                .println("7. Holistic: <SimulatorType inFileName numServer>");
 
         System.exit(1);
     }

@@ -4,11 +4,11 @@ import util.cardinality.HyperLogLog;
 
 public class Operator implements ILoad {
 
-    private StreamPartitioner partitioner;  // for upstream operators
-    private Operator[] downstreamOperators;     // for upstream operators
+    private StreamPartitioner partitioner;   // core of upstream operators
+    private Operator[] downstreamOperators;  // for upstream operators to have references of downstream operators
 
-    private long elementCount; // for downstream operators
-    private HyperLogLog hyperLogLog;
+    private long elementCount;        // for downstream operators to get load statistics
+    private HyperLogLog hyperLogLog;  // for other algorithm to get cardinality statistics
     private final int DEFAULT_LOG2M = 12;
 
     public Operator() {  // for downstream operators
