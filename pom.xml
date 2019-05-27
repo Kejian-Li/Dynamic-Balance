@@ -33,13 +33,6 @@
             <version>2.0</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.talend.studio/org.talend.libraries.javacsv.jars -->
-        <dependency>
-            <groupId>org.talend.studio</groupId>
-            <artifactId>org.talend.libraries.javacsv.jars</artifactId>
-            <version>6.5.1</version>
-        </dependency>
-
     </dependencies>
 
     <build>
