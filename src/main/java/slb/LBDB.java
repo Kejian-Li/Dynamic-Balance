@@ -10,7 +10,11 @@ import util.load.LossyCounting;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * This is my initial algorithm, I found previous simulation is complex and overhead of memory is very high.
+ * So, I create a new simulation mechanism on package slb2 and implement all these algorithms including my
+ * holistic algorithm except LBGreedyChoice.
+ */
 public class LBDB implements MyLoadBalancer {
 
     private List<Server> nodes;

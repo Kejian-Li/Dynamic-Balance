@@ -21,6 +21,15 @@ public class Operator implements ILoad {
         this.downstreamOperators = downstreamOperators;
     }
 
+    public void processElement(Object key) throws Exception {  // for upstream operators
+        // process element, then partition it
+
+        int selected = partitioner.partition(key);
+
+        downstreamOperators[selected].receiveElement(key);
+    }
+
+
     public void processElement(long timestamp, Object key) throws Exception {  // for upstream operators
         // process element, then partition it
 

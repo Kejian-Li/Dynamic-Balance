@@ -120,7 +120,6 @@ public class DChoices_Partitioner implements StreamPartitioner {
             }
         }
         return topK;
-
     }
 
     private PHeadCount getPHead(StreamSummary<String> streamSummary, double probability, long totalItems) {

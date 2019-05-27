@@ -1,15 +1,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.yahoo.labs</groupId>
     <artifactId>StreamLoadBalancing</artifactId>
     <version>0.0.5-SNAPSHOT</version>
+
     <dependencies>
-	<dependency>
-      		<groupId>com.google.guava</groupId>
-      		<artifactId>guava</artifactId>
-      		<version>17.0</version>
-    	</dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>17.0</version>
+        </dependency>
         <dependency>
             <groupId>com.clearspring.analytics</groupId>
             <artifactId>stream</artifactId>
@@ -26,7 +27,21 @@
             <version>4.11</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>net.sourceforge.javacsv</groupId>
+            <artifactId>javacsv</artifactId>
+            <version>2.0</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.talend.studio/org.talend.libraries.javacsv.jars -->
+        <dependency>
+            <groupId>org.talend.studio</groupId>
+            <artifactId>org.talend.libraries.javacsv.jars</artifactId>
+            <version>6.5.1</version>
+        </dependency>
+
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -51,14 +66,14 @@
                     </execution>
                 </executions>
             </plugin>
-     	<plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.1</version>
-          <configuration>
-              <source>1.7</source>
-              <target>1.7</target>
-          </configuration>
-      </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

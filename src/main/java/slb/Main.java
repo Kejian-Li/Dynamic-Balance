@@ -189,10 +189,10 @@ public class Main {
         long[] totalLoad;
         long[][] localLoad;
 
-        MyLoadBalancer balancer = null;
+        MyLoadBalancer balancer = null;  // only for my initial LBDB algorithm
 
         for (Entry<TimeGranularity, LoadBalancer> entry: hashes.entrySet()) {
-            balancer = (MyLoadBalancer) entry.getValue();
+            balancer = (MyLoadBalancer) entry.getValue();     // simply previous simulation. overhead of memory is less four times.
             break;
         }
 

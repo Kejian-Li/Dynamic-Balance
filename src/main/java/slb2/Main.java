@@ -1,9 +1,11 @@
 package slb2;
 
+import com.csvreader.CsvReader;
 import slb.StreamItem;
 import slb.StreamItemReader;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.util.zip.GZIPInputStream;
 
 public class Main {
@@ -70,36 +72,43 @@ public class Main {
             upstreamOperators[i] = new Operator(partitioner, downstreamOperators);
         }
 
+        if (inFileName.endsWith(".gz")) {    // for wikipedia dataset
+            startEmulate(getInput(inFileName));
+        } else if (inFileName.endsWith(".csv")) {  // for twitter dataset
+            startEmulate(new CsvItemReader(new CsvReader(inFileName)));
+        }
 
-        startEmulate(inFileName);
         outputResult(downstreamOperators, numServers);
     }
 
-    private static int itemCount = 0;
 
-    private static void startEmulate(String inFileName) throws Exception {
-        // read items and route them to the correct server
-        System.out.println("Starting to read the item stream");
+    private static BufferedReader getInput(String inFileName) throws IOException {
         BufferedReader in = null;
         try {
             InputStream rawin = new FileInputStream(inFileName);
-            if (inFileName.endsWith(".gz"))
-                rawin = new GZIPInputStream(rawin);
+            rawin = new GZIPInputStream(rawin);
             in = new BufferedReader(new InputStreamReader(rawin));
         } catch (FileNotFoundException e) {
             System.err.println("File not found");
             e.printStackTrace();
             System.exit(1);
         }
+        return in;
+    }
 
-        // core loop
+    private static int itemCount = 0;
+
+    private static void startEmulate(BufferedReader in) throws Exception {
+        System.out.println("Starting to read the item stream");
         long simulationStartTime = System.currentTimeMillis();
         StreamItemReader reader = new StreamItemReader(in);
         StreamItem item = reader.nextItem();
-        long currentTimestamp = 0;
+        long currentTimestamp;
 
         int sourceIndex = 0;
         Operator operator;
+
+        // core loop
         while (item != null) {
             if (++itemCount % PRINT_INTERVAL == 0) {
                 System.out.println("Read " + itemCount / 1000000
@@ -122,7 +131,44 @@ public class Main {
         reader.close();
         System.out.println();
         System.out.println("Finished reading items\nTotal items: " + itemCount);
+    }
 
+    private static void startEmulate(CsvItemReader reader) throws Exception {
+        System.out.println("Starting to read the item stream");
+
+        long simulationStartTime = System.currentTimeMillis();
+        String[] item;
+        try {
+            item = reader.nextItem();
+        } catch (IOException e) {
+            throw e;
+        }
+        int sourceIndex = 0;
+        Operator operator;
+
+        // core loop
+        while (item != null) {
+            for (int i = 0; i < item.length; i++) {
+                if (++itemCount % PRINT_INTERVAL == 0) {
+                    System.out.println("Read " + itemCount / 1000000
+                            + "M tweets.\tSimulation time: "
+                            + (System.currentTimeMillis() - simulationStartTime) + " ms");
+                }
+
+                operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
+                operator.processElement(item[i]);
+
+                sourceIndex++;
+                if (sourceIndex == numSources) {
+                    sourceIndex = 0;
+                }
+            }
+            item = reader.nextItem();
+        }
+
+        reader.close();
+        System.out.println();
+        System.out.println("Finished reading items\nTotal items: " + itemCount);
     }
 
     private static void outputResult(Operator[] downstreamOperators, int numServers) {
