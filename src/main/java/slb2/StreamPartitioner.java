@@ -9,5 +9,11 @@ public interface StreamPartitioner {
      */
     int partition(Object key) throws Exception;
 
+    /**
+     *
+     * @return
+     */
+    String getName();
+
 
 }

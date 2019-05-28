@@ -1,18 +1,6 @@
 package slb2;
 
-import com.csvreader.CsvReader;
-import slb.StreamItem;
-import slb.StreamItemReader;
-
-import java.io.*;
-import java.nio.charset.Charset;
-import java.util.zip.GZIPInputStream;
-
 public class Main {
-    private static final double PRINT_INTERVAL = 1e6;
-    private static Operator[] upstreamOperators;
-    private static Operator[] downstreamOperators;
-    private static int numSources;
 
 
     public static void main(String[] args) throws Exception {
@@ -22,7 +10,7 @@ public class Main {
 
         final int simulatorType = Integer.parseInt(args[0]);
         final String inFileName = args[1];
-        numSources = Integer.parseInt(args[2]);  // number of upstream operators
+        final int numSources = Integer.parseInt(args[2]);  // number of upstream operators
         final int numServers = Integer.parseInt(args[3]);  // number of downstream operators
 
         // default
@@ -62,161 +50,12 @@ public class Main {
             partitioner = new HolisticPartitioner(numServers, delta, alpha);  //epsilon -> alpha
         }
 
-        downstreamOperators = new Operator[numServers]; // Operator entity for downstream
-        for (int i = 0; i < numServers; i++) {
-            downstreamOperators[i] = new Operator();
-        }
+        Simulator simulator = new Simulator(numSources, numServers, inFileName, partitioner);
+        simulator.start();
 
-        upstreamOperators = new Operator[numSources]; // Operator entity for upstream
-        for (int i = 0; i < numSources; i++) {
-            upstreamOperators[i] = new Operator(partitioner, downstreamOperators);
-        }
-
-        if (inFileName.endsWith(".gz")) {    // for wikipedia dataset
-            startEmulate(getInput(inFileName));
-        } else if (inFileName.endsWith(".csv")) {  // for twitter dataset
-            startEmulate(new CsvItemReader(new CsvReader(inFileName)));
-        }
-
-        outputResult(downstreamOperators, numServers);
     }
 
 
-    private static BufferedReader getInput(String inFileName) throws IOException {
-        BufferedReader in = null;
-        try {
-            InputStream rawin = new FileInputStream(inFileName);
-            rawin = new GZIPInputStream(rawin);
-            in = new BufferedReader(new InputStreamReader(rawin));
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found");
-            e.printStackTrace();
-            System.exit(1);
-        }
-        return in;
-    }
-
-    private static int itemCount = 0;
-
-    private static void startEmulate(BufferedReader in) throws Exception {
-        System.out.println("Starting to read the item stream");
-        long simulationStartTime = System.currentTimeMillis();
-        StreamItemReader reader = new StreamItemReader(in);
-        StreamItem item = reader.nextItem();
-        long currentTimestamp;
-
-        int sourceIndex = 0;
-        Operator operator;
-
-        // core loop
-        while (item != null) {
-            if (++itemCount % PRINT_INTERVAL == 0) {
-                System.out.println("Read " + itemCount / 1000000
-                        + "M tweets.\tSimulation time: "
-                        + (System.currentTimeMillis() - simulationStartTime) + " ms");
-            }
-            currentTimestamp = item.getTimestamp();
-            String key = item.getWord(0);
-
-            operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
-            operator.processElement(currentTimestamp, key);
-
-            sourceIndex++;
-            if (sourceIndex == numSources) {
-                sourceIndex = 0;
-            }
-            item = reader.nextItem();
-        }
-
-        reader.close();
-        System.out.println();
-        System.out.println("Finished reading items\nTotal items: " + itemCount);
-    }
-
-    private static void startEmulate(CsvItemReader reader) throws Exception {
-        System.out.println("Starting to read the item stream");
-
-        long simulationStartTime = System.currentTimeMillis();
-        String[] item;
-        try {
-            item = reader.nextItem();
-        } catch (IOException e) {
-            throw e;
-        }
-        int sourceIndex = 0;
-        Operator operator;
-
-        long wordCount = 0;
-        // core loop
-        while (item != null) {
-            for (int i = 0; i < item.length; i++) {
-                if (++wordCount % PRINT_INTERVAL == 0) {
-                    System.out.println("Read " + itemCount / 1000000
-                            + "M words.\tSimulation time: "
-                            + (System.currentTimeMillis() - simulationStartTime) + " ms");
-                }
-
-                operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
-                operator.processElement(item[i]);
-
-                sourceIndex++;
-                if (sourceIndex == numSources) {
-                    sourceIndex = 0;
-                }
-            }
-            item = reader.nextItem();
-        }
-
-        reader.close();
-        System.out.println();
-        System.out.println("Finished reading items\nTotal items: " + wordCount);
-    }
-
-    private static void outputResult(Operator[] downstreamOperators, int numServers) {
-        System.out.println();
-        System.out.println();
-
-        // output for load imbalance
-        System.out.println("<1> Load: ");
-        long maxLoad = downstreamOperators[0].getLoad();
-
-        long temp;
-        for (int i = 0; i < numServers - 1; i++) {
-            temp = downstreamOperators[i].getLoad();
-            if (maxLoad < temp) {
-                maxLoad = temp;
-            }
-            System.out.print(temp + ",  ");
-        }
-        System.out.println(downstreamOperators[numServers - 1].getLoad());
-        System.out.println();
-
-        double averageLoad = itemCount / numServers;
-        double loadImbalance = (maxLoad / averageLoad) - 1;
-        System.out.println("Load Imbalance: " + loadImbalance);
-        System.out.println();
-
-        System.out.println("<2> Cardinality: ");
-        long maxCardinality = downstreamOperators[0].getCardinality();
-        long totalCardinality = 0;
-        for (int i = 0; i < numServers - 1; i++) {
-            temp = downstreamOperators[i].getCardinality();
-            totalCardinality += temp;
-            if (maxCardinality < temp) {
-                maxCardinality = temp;
-            }
-            System.out.print(temp + ",  ");
-        }
-        temp = downstreamOperators[numServers - 1].getCardinality();
-        totalCardinality += temp;
-        System.out.println(temp);
-
-        System.out.println();
-        double averageCardinality = totalCardinality / numServers;
-        double cardinalityImbalance = (maxCardinality / averageCardinality) - 1;
-        System.out.println("Cardinality Imbalance: " + cardinalityImbalance);
-        System.out.println();
-    }
 
     private static void ErrorMessage() {
         System.err.println("Choose the type of simulator using:");

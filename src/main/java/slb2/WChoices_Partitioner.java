@@ -112,4 +112,9 @@ public class WChoices_Partitioner implements StreamPartitioner {
         }
         return min;
     }
+
+    @Override
+    public String getName() {
+        return "W-Choices";
+    }
 }

@@ -15,4 +15,8 @@ public class HashPartitioner implements StreamPartitioner {
         return Math.abs(Hashing.murmur3_128(13).hashBytes(key.toString().getBytes()).asInt() % numServers);
     }
 
+    @Override
+    public String getName() {
+        return "Hash";
+    }
 }

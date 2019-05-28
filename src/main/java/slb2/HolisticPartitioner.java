@@ -125,4 +125,8 @@ public class HolisticPartitioner implements StreamPartitioner {
         return Math.abs(Hashing.murmur3_128().hashBytes(key.toString().getBytes()).asInt() % numServers);
     }
 
+    @Override
+    public String getName() {
+        return "Holistic";
+    }
 }

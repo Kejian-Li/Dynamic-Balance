@@ -38,4 +38,8 @@ public class PKG_Partitioner implements StreamPartitioner {
         return chosen;
     }
 
+    @Override
+    public String getName() {
+        return "PKG";
+    }
 }

@@ -95,6 +95,11 @@ public class DChoices_Partitioner implements StreamPartitioner {
         return chosen;
     }
 
+    @Override
+    public String getName() {
+        return "D-Choices";
+    }
+
     private int chooseMinLoad(long[] localLoad, int[] selected) {
         int min = selected[0];
         long minOne = localLoad[selected[0]];

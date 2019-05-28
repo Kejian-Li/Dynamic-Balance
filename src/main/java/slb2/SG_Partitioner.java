@@ -17,4 +17,8 @@ public class SG_Partitioner implements StreamPartitioner {
         return ++nextIndex % numServers;
     }
 
+    @Override
+    public String getName() {
+        return "Shuffle";
+    }
 }

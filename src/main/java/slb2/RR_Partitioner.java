@@ -121,4 +121,9 @@ public class RR_Partitioner implements StreamPartitioner {
         }
         return min;
     }
+
+    @Override
+    public String getName() {
+        return "RR";
+    }
 }
