@@ -87,7 +87,7 @@ public class HolisticPartitioner implements StreamPartitioner {
         return frequentItems;
     }
 
-    private int indicator;
+    private int indicator = 0;
     private HyperLogLog tempHyperLogLog;
 
     private double computeScore(int i, Object key) throws Exception {
@@ -103,8 +103,12 @@ public class HolisticPartitioner implements StreamPartitioner {
             indicator = 1;
         }
         tempHyperLogLog = null; // for GC
-        double cardinalityPart = 1 - localCardinality[i].cardinality() / totalCardinality.cardinality();
-        double loadPart = 1 - localLoad[i] / totalLoad;
+
+        double averageCardinality = totalCardinality.cardinality() / (double) numServers;
+        double cardinalityPart = ( averageCardinality - localCardinality[i].cardinality()) / averageCardinality;
+
+        double averageLoad = totalLoad / (double) numServers;
+        double loadPart = (averageLoad - localLoad[i]) / averageLoad;
 
         return indicator + alpha * cardinalityPart + (1 - alpha) * loadPart;
     }

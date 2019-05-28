@@ -43,6 +43,7 @@ public class Simulator {
         } else if (inFileName.endsWith(".csv")) {     // for twitter dataset
             totalCount = startEmulate(new CsvItemReader(new CsvReader(inFileName)));
         }
+
         outputResult(downstreamOperators, numServers, totalCount);
     }
 
@@ -161,7 +162,7 @@ public class Simulator {
         if (maxLoad < temp) {
             maxLoad = temp;
         }
-        System.out.println(downstreamOperators[numServers - 1].getLoad());
+        System.out.println(temp);
 
         double averageLoad = totalCount / (double) numServers;
         double loadImbalance = (maxLoad - averageLoad) / averageLoad;
