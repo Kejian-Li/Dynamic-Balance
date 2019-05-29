@@ -9,7 +9,7 @@ public class Main {
         }
 
         final int simulatorType = Integer.parseInt(args[0]);
-        final String inFileName = args[1];
+        final String inFilePathName = args[1];
         final int numSources = Integer.parseInt(args[2]);  // number of upstream operators
         final int numServers = Integer.parseInt(args[3]);  // number of downstream operators
 
@@ -33,24 +33,35 @@ public class Main {
         }
 
         StreamPartitioner partitioner = null;
+        String outputName = null;
 
         if (simulatorType == 1) {
             partitioner = new HashPartitioner(numServers);
+            outputName = "hash";
         } else if (simulatorType == 2) {
             partitioner = new PKG_Partitioner(numServers);
+            outputName = "pkg";
         } else if (simulatorType == 3) {
             partitioner = new DChoices_Partitioner(numServers, threshold, epsilon);
+            outputName = "d-choices";
         } else if (simulatorType == 4) {
             partitioner = new WChoices_Partitioner(numServers, threshold);
+            outputName = "w-choices";
         } else if (simulatorType == 5) {
             partitioner = new RR_Partitioner(numServers, threshold);
+            outputName = "RR";
         } else if (simulatorType == 6) {
             partitioner = new SG_Partitioner(numServers);
+            outputName = "shuffle";
         } else if (simulatorType == 7) {
             partitioner = new HolisticPartitioner(numServers, delta, alpha);  //epsilon -> alpha
+            outputName = "holistic";
         }
 
-        Simulator simulator = new Simulator(numSources, numServers, inFileName, partitioner);
+        String outFilePathName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\paper_writing\\wiki_"
+                + outputName + ".csv";
+
+        Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner);
         simulator.start();
 
     }
