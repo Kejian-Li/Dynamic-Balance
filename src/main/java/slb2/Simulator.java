@@ -2,13 +2,8 @@ package slb2;
 
 import com.csvreader.CsvReader;
 import com.csvreader.CsvWriter;
-import slb.StreamItem;
-import slb.StreamItemReader;
 
 import java.io.*;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.zip.GZIPInputStream;
 
 public class Simulator {
@@ -98,8 +93,7 @@ public class Simulator {
 
         long simulationStartTime = System.currentTimeMillis();
         StreamItemReader reader = new StreamItemReader(in);
-        StreamItem item = reader.nextItem();
-        long currentTimestamp;
+        String[] item = reader.nextItem();
 
         int sourceIndex = 0;
         Operator operator;
@@ -113,11 +107,10 @@ public class Simulator {
                 System.out.println("Read " + x + "M tweets.\tSimulation time: " + simulationDuration + " ms");
                 outputPartialResult(downstreamOperators, numServers, itemCount, x, simulationDuration);
             }
-            currentTimestamp = item.getTimestamp();
-            String key = item.getWord(0);
+            String key = item[1]; // for wikipedia data
 
             operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
-            operator.processElement(currentTimestamp, key);
+            operator.processElement(key);
 
             sourceIndex++;
             if (sourceIndex == numSources) {
@@ -139,12 +132,7 @@ public class Simulator {
         writer.writeComment("M tuples, load imbalance, cardinality imbalance, simulation time");
 
         long simulationStartTime = System.currentTimeMillis();
-        String[] item;
-        try {
-            item = reader.nextItem();
-        } catch (IOException e) {
-            throw e;
-        }
+        String[] item = reader.nextItem();
         int sourceIndex = 0;
         Operator operator;
 
@@ -170,9 +158,9 @@ public class Simulator {
             item = reader.nextItem();
         }
 
+        reader.close();
         writer.close();
 
-        reader.close();
         System.out.println();
         System.out.println("Finished reading items\nTotal words: " + wordCount);
 

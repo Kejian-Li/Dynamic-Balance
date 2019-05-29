@@ -105,7 +105,7 @@ public class HolisticPartitioner implements StreamPartitioner {
         tempHyperLogLog = null; // for GC
 
         double averageCardinality = totalCardinality.cardinality() / (double) numServers;
-        double cardinalityPart = ( averageCardinality - localCardinality[i].cardinality()) / averageCardinality;
+        double cardinalityPart = (averageCardinality - localCardinality[i].cardinality()) / averageCardinality;
 
         double averageLoad = totalLoad / (double) numServers;
         double loadPart = (averageLoad - localLoad[i]) / averageLoad;

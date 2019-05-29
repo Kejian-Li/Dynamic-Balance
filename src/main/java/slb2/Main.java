@@ -58,7 +58,7 @@ public class Main {
             outputName = "holistic";
         }
 
-        String outFilePathName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\paper_writing\\wiki_"
+        String outFilePathName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\paper_writing\\twitter_"
                 + outputName + ".csv";
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner);

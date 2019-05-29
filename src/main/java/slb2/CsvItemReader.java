@@ -5,9 +5,9 @@ import com.csvreader.CsvReader;
 import java.io.IOException;
 
 /**
- * For csv format, eg., twitter dataset
+ * For csv format file, eg., twitter dataset
  */
-public class CsvItemReader {
+public class CsvItemReader implements ItemReader {
 
     private CsvReader reader;
 
@@ -16,8 +16,9 @@ public class CsvItemReader {
         this.reader = reader;
     }
 
-    public String[] nextItem() throws IOException {
-        String text;
+    @Override
+    public String[] nextItem() {
+        String text = null;
         try {
             if (reader.readRecord()) {
                 text = reader.get(4); // tweet id = 0,...., text = 4,...
@@ -25,7 +26,7 @@ public class CsvItemReader {
                 return null;
             }
         } catch (IOException e) {
-            throw e;
+            e.printStackTrace();
         }
 
         String[] words = text.split(" ");  // split text into words as keys

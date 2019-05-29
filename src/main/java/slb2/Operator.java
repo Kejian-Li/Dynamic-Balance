@@ -29,15 +29,6 @@ public class Operator implements ILoad {
         downstreamOperators[selected].receiveElement(key);
     }
 
-
-    public void processElement(long timestamp, Object key) throws Exception {  // for upstream operators
-        // process element, then partition it
-
-        int selected = partitioner.partition(key);
-
-        downstreamOperators[selected].receiveElement(key);
-    }
-
     public void receiveElement(Object key) {  // for downstream operator
         elementCount++;
         hyperLogLog.offer(key);
