@@ -1,7 +1,5 @@
 package slb2;
 
-import slb2.multithreads.SimulatorMultiThreads;
-
 public class Main {
 
 
@@ -12,7 +10,7 @@ public class Main {
 
         final int simulatorType = Integer.parseInt(args[0]);
         final String inFilePathName = args[1];
-        final String outFilePath= args[2];
+        final String outFilePath = args[2];  // just path
         final int numSources = Integer.parseInt(args[3]);  // number of upstream operators
         final int numServers = Integer.parseInt(args[4]);  // number of downstream operators
 
@@ -38,9 +36,9 @@ public class Main {
         StreamPartitioner partitioner = null;
         String outputFilePrefix = null;
         if (inFilePathName.endsWith(".gz")) {
-            outputFilePrefix = "twitter_";
-        }else if (inFilePathName.endsWith(".csv")) {
             outputFilePrefix = "wiki_";
+        } else if (inFilePathName.endsWith(".csv")) {
+            outputFilePrefix = "twitter_";
         }
 
         String outputFileName = null;
@@ -67,7 +65,7 @@ public class Main {
             partitioner = new HolisticPartitioner(numServers, delta, alpha);  //epsilon -> alpha
             outputFileName = "holistic";
         }
-        String outFilePathName = outFilePath + outputFilePrefix + outputFileName + ".csv";
+        String outFilePathName = outFilePath + "\\" + outputFilePrefix + outputFileName + ".csv";
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner);
         simulator.start();
