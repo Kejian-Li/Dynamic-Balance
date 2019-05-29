@@ -171,7 +171,7 @@ public class Simulator {
     }
 
     private void outputPartialResult(Operator[] downstreamOperators, int numServers,
-                                     long totalCount, int x, long simulationDuration) {
+                                     long temporaryCount, int x, long simulationDuration) {
 
         // output for load imbalance
         long maxLoad = downstreamOperators[0].getLoad();
@@ -183,7 +183,7 @@ public class Simulator {
             }
         }
 
-        double averageLoad = totalCount / (double) numServers;
+        double averageLoad = temporaryCount / (double) numServers;
         double loadImbalance = (maxLoad - averageLoad) / averageLoad;
         System.out.println("Load Imbalance: " + loadImbalance);
 

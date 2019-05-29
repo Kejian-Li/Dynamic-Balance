@@ -1,3 +1,5 @@
+package test;
+
 import util.cardinality.HyperLogLog;
 
 public class HyperLogLogTest {
