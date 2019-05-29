@@ -1,5 +1,7 @@
 package slb2;
 
+import slb2.multithreads.SimulatorMultiThreads;
+
 public class Main {
 
 
@@ -10,7 +12,7 @@ public class Main {
 
         final int simulatorType = Integer.parseInt(args[0]);
         final String inFilePathName = args[1];
-        final String outFilePathName = args[2];
+        final String outFilePath= args[2];
         final int numSources = Integer.parseInt(args[3]);  // number of upstream operators
         final int numServers = Integer.parseInt(args[4]);  // number of downstream operators
 
@@ -34,26 +36,44 @@ public class Main {
         }
 
         StreamPartitioner partitioner = null;
+        String outputFilePrefix = null;
+        if (inFilePathName.endsWith(".gz")) {
+            outputFilePrefix = "twitter_";
+        }else if (inFilePathName.endsWith(".csv")) {
+            outputFilePrefix = "wiki_";
+        }
+
+        String outputFileName = null;
 
         if (simulatorType == 1) {
             partitioner = new HashPartitioner(numServers);
+            outputFileName = "hash";
         } else if (simulatorType == 2) {
             partitioner = new PKG_Partitioner(numServers);
+            outputFileName = "pkg";
         } else if (simulatorType == 3) {
             partitioner = new DChoices_Partitioner(numServers, threshold, epsilon);
+            outputFileName = "d-choices";
         } else if (simulatorType == 4) {
             partitioner = new WChoices_Partitioner(numServers, threshold);
+            outputFileName = "w-choices";
         } else if (simulatorType == 5) {
             partitioner = new RR_Partitioner(numServers, threshold);
+            outputFileName = "RR";
         } else if (simulatorType == 6) {
             partitioner = new SG_Partitioner(numServers);
+            outputFileName = "shuffle";
         } else if (simulatorType == 7) {
             partitioner = new HolisticPartitioner(numServers, delta, alpha);  //epsilon -> alpha
+            outputFileName = "holistic";
         }
+        String outFilePathName = outFilePath + outputFilePrefix + outputFileName + ".csv";
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner);
         simulator.start();
-
+//        SimulatorMultiThreads simulatorMultiThreads = new SimulatorMultiThreads(numSources, numServers,
+//                inFilePathName, outFilePathName, partitioner);
+//        simulatorMultiThreads.start();
     }
 
     private static void ErrorMessage() {

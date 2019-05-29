@@ -6,6 +6,9 @@ import com.csvreader.CsvWriter;
 import java.io.*;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * Single thread simulator
+ */
 public class Simulator {
 
     private final double PRINT_INTERVAL = 1e6;

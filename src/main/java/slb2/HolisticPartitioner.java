@@ -2,8 +2,10 @@ package slb2;
 
 import com.clearspring.analytics.stream.cardinality.CardinalityMergeException;
 import com.google.common.hash.Hashing;
+import com.sun.prism.impl.FactoryResetException;
 import util.cardinality.HyperLogLog;
 import util.load.CountEntry;
+import util.load.FrequencyException;
 import util.load.LossyCounting;
 
 import java.util.HashSet;
@@ -50,14 +52,18 @@ public class HolisticPartitioner implements StreamPartitioner {
     }
 
     @Override
-    public int partition(Object key) throws Exception {
+    public int partition(Object key) {
         int selected;
 
         // update total
         totalLoad++;
         totalCardinality.offer(key);
 
-        lossyCounting.add(key.toString());
+        try {
+            lossyCounting.add(key.toString());
+        }catch (FrequencyException e) {
+            e.printStackTrace();
+        }
         Set<String> frequentItems = getFrequentItems(lossyCounting, delta, totalLoad);
 
         if (!frequentItems.contains(key.toString())) {
@@ -90,12 +96,12 @@ public class HolisticPartitioner implements StreamPartitioner {
     private int indicator = 0;
     private HyperLogLog tempHyperLogLog;
 
-    private double computeScore(int i, Object key) throws Exception {
+    private double computeScore(int i, Object key) {
         try {
             tempHyperLogLog = new HyperLogLog(DEFAULT_LOG2M);
             tempHyperLogLog.addAll(localCardinality[i]);
         } catch (CardinalityMergeException e) {
-            throw e;
+            e.printStackTrace();
         }
         if (tempHyperLogLog.offer(key)) {  // affect cardinality
             indicator = 0;

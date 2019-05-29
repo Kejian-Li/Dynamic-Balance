@@ -21,10 +21,15 @@ public class Operator implements ILoad {
         this.downstreamOperators = downstreamOperators;
     }
 
-    public void processElement(Object key) throws Exception {  // for upstream operators
+    // concurrency method
+    public synchronized void processElement(Object key)  {  // for upstream operators
         // process element, then partition it
-
-        int selected = partitioner.partition(key);
+        int selected = 0;
+        try {
+            selected = partitioner.partition(key);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
 
         downstreamOperators[selected].receiveElement(key);
     }

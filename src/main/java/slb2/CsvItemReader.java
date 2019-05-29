@@ -16,6 +16,14 @@ public class CsvItemReader implements ItemReader {
         this.reader = reader;
     }
 
+    public void skipLine() {
+        try {
+            reader.skipLine();
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public String[] nextItem() {
         String text = null;
