@@ -2,7 +2,6 @@ package slb2;
 
 import com.clearspring.analytics.stream.cardinality.CardinalityMergeException;
 import com.google.common.hash.Hashing;
-import com.sun.prism.impl.FactoryResetException;
 import util.cardinality.HyperLogLog;
 import util.load.CountEntry;
 import util.load.FrequencyException;
