@@ -91,7 +91,7 @@ public class Simulator {
     }
 
 
-    private long startEmulate(BufferedReader in) throws Exception {
+    private long startEmulate(BufferedReader in) throws Exception {  // for wikipedia
         System.out.println();
 
         long simulationStartTime = System.currentTimeMillis();
@@ -130,7 +130,7 @@ public class Simulator {
         return itemCount;
     }
 
-    private long startEmulate(CsvItemReader reader) throws Exception {
+    private long startEmulate(CsvItemReader reader) throws Exception {  // for twitter
         System.out.println();
         writer.writeComment("M tuples, load imbalance, cardinality imbalance, simulation time");
 
@@ -142,7 +142,7 @@ public class Simulator {
         long wordCount = 0;
         // core loop
         while (item != null) {
-            for (int i = 0; i < item.length; i++) {
+            for (int i = 0; i < item.length; i++) {  // too large
                 if (++wordCount % PRINT_INTERVAL == 0) {
                     int x = (int) (wordCount / 1000000);
                     long simulationDuration = System.currentTimeMillis() - simulationStartTime;

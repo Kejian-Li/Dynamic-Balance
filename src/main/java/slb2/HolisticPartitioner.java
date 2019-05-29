@@ -27,7 +27,7 @@ public class HolisticPartitioner implements StreamPartitioner {
     private HyperLogLog[] localCardinality; // record downstream cardinality
     private double[] scores;  // reuse for each incoming element
 
-    private final static int DEFAULT_LOG2M = 12;
+    private final static int DEFAULT_LOG2M = 24; // 12 for 10^7 个 keys of 32 bits
 
     public HolisticPartitioner(int numServers, float delta, float alpha) {
 
