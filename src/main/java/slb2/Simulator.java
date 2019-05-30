@@ -72,7 +72,7 @@ public class Simulator {
         } else if (inFilePathName.endsWith(".csv")) {     // for twitter dataset
             if (inFilePathName.endsWith("twcs.csv")) {
                 startEmulate(new CsvItemReader(new CsvReader(inFilePathName), DataType.TWITTER));
-            }else if(inFilePathName.endsWith("zipf_data.csv")) {
+            } else if (inFilePathName.endsWith("zipf_data.csv")) {
                 startEmulate(new CsvItemReader(new CsvReader(inFilePathName), DataType.ZIPF));
             }
         }
@@ -212,6 +212,7 @@ public class Simulator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     private void outputResult(Operator[] downstreamOperators, int numServers) {

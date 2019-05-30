@@ -1,8 +1,11 @@
 package slb2;
 
 import com.clearspring.analytics.stream.cardinality.CardinalityMergeException;
+import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import util.cardinality.Hash;
 import util.cardinality.HyperLogLog;
+import util.cardinality.MurmurHash;
 import util.load.CountEntry;
 import util.load.FrequencyException;
 import util.load.LossyCounting;
@@ -19,6 +22,7 @@ public class HolisticPartitioner implements StreamPartitioner {
     private double error;  // lossy counting error
     private float alpha;  // load and cardinality balance factor, default = 0.5
 
+    private Hash hash;
     private LossyCounting<String> lossyCounting;
 
     private long totalLoad;
@@ -39,6 +43,7 @@ public class HolisticPartitioner implements StreamPartitioner {
         totalLoad = 0;
         localLoad = new long[numServers];
 
+        hash = MurmurHash.getInstance();
         lossyCounting = new LossyCounting<>(error);
 
         totalCardinality = new HyperLogLog(DEFAULT_LOG2M);
@@ -131,7 +136,7 @@ public class HolisticPartitioner implements StreamPartitioner {
     }
 
     private int hash(Object key) {
-        return Math.abs(Hashing.murmur3_128().hashBytes(key.toString().getBytes()).asInt() % numServers);
+        return Math.abs(hash.hash(key) % numServers);
     }
 
     @Override
