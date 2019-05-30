@@ -38,7 +38,11 @@ public class Main {
         if (inFilePathName.endsWith(".gz")) {
             outputFilePrefix = "wiki_";
         } else if (inFilePathName.endsWith(".csv")) {
-            outputFilePrefix = "twitter_";
+            if (inFilePathName.endsWith("zipf_data.csv")) {
+                outputFilePrefix = "zipf_";
+            } else if (inFilePathName.endsWith("twcs.csv")){
+                outputFilePrefix = "twitter_";
+            }
         }
 
         String outputFileName = null;

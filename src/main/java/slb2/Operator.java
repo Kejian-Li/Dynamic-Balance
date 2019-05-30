@@ -21,8 +21,7 @@ public class Operator implements ILoad {
         this.downstreamOperators = downstreamOperators;
     }
 
-    // concurrency method
-    public synchronized void processElement(Object key)  {  // for upstream operators
+    public void processElement(Object key)  {  // for upstream operators
         // process element, then partition it
         int selected = 0;
         try {

@@ -14,7 +14,7 @@ public class Simulator {
     private final double PRINT_INTERVAL = 1e6;
     private int numServers;
     private int numSources;
-    private String inFileName;
+    private String inFilePathName;
     private StreamPartitioner partitioner;
 
     private Operator[] upstreamOperators;
@@ -24,11 +24,11 @@ public class Simulator {
 
     private CsvWriter writer;
 
-    public Simulator(int numSources, int numServers, String inFileName,
+    public Simulator(int numSources, int numServers, String inFilePathName,
                      String outFilePathName, StreamPartitioner partitioner) throws Exception {
         this.numSources = numSources;
         this.numServers = numServers;
-        this.inFileName = inFileName;
+        this.inFilePathName = inFilePathName;
         this.partitioner = partitioner;
 
         downstreamOperators = new Operator[numServers]; // Operator entity for downstream
@@ -55,7 +55,8 @@ public class Simulator {
             columnName[3] = "s";  // simulation time/ms
 
             writer = new CsvWriter(outFilePathName);
-            writer.writeRecord(columnName);
+            writer.writeComment("M tuples, load imbalance, cardinality imbalance, simulation time");
+            writer.writeRecord(columnName);   // for convenient plot charts
         } catch (FileNotFoundException e) {
             throw e;
         }
@@ -66,14 +67,17 @@ public class Simulator {
         System.out.println("Starting to read the item stream...");
         System.out.println(partitioner.getName() + " Partitioner output:");
 
-        long totalCount = 0;
-        if (inFileName.endsWith(".gz")) {            // for wikipedia dataset
-            totalCount = startEmulate(getInput(inFileName));
-        } else if (inFileName.endsWith(".csv")) {     // for twitter dataset
-            totalCount = startEmulate(new CsvItemReader(new CsvReader(inFileName)));
+        if (inFilePathName.endsWith(".gz")) {            // for wikipedia dataset
+            startEmulate(getInput(inFilePathName));
+        } else if (inFilePathName.endsWith(".csv")) {     // for twitter dataset
+            if (inFilePathName.endsWith("twcs.csv")) {
+                startEmulate(new CsvItemReader(new CsvReader(inFilePathName), DataType.TWITTER));
+            }else if(inFilePathName.endsWith("zipf_data.csv")) {
+                startEmulate(new CsvItemReader(new CsvReader(inFilePathName), DataType.ZIPF));
+            }
         }
 
-        outputResult(downstreamOperators, numServers, totalCount);
+        outputResult(downstreamOperators, numServers);
     }
 
     private BufferedReader getInput(String inFileName) throws IOException {
@@ -91,7 +95,7 @@ public class Simulator {
     }
 
 
-    private long startEmulate(BufferedReader in) throws Exception {  // for wikipedia
+    private void startEmulate(BufferedReader in) throws Exception {  // for wikipedia
         System.out.println();
 
         long simulationStartTime = System.currentTimeMillis();
@@ -126,13 +130,10 @@ public class Simulator {
         writer.close();
         System.out.println();
         System.out.println("Finished reading items\nTotal items: " + itemCount);
-
-        return itemCount;
     }
 
-    private long startEmulate(CsvItemReader reader) throws Exception {  // for twitter
+    private void startEmulate(CsvItemReader reader) throws Exception {  // for twitter
         System.out.println();
-        writer.writeComment("M tuples, load imbalance, cardinality imbalance, simulation time");
 
         long simulationStartTime = System.currentTimeMillis();
         String[] item = reader.nextItem();
@@ -166,8 +167,6 @@ public class Simulator {
 
         System.out.println();
         System.out.println("Finished reading items\nTotal words: " + wordCount);
-
-        return wordCount;
     }
 
     private void outputPartialResult(Operator[] downstreamOperators, int numServers,
@@ -215,7 +214,7 @@ public class Simulator {
         }
     }
 
-    private void outputResult(Operator[] downstreamOperators, int numServers, long totalCount) {
+    private void outputResult(Operator[] downstreamOperators, int numServers) {
         System.out.println();
         System.out.println();
 
@@ -236,6 +235,11 @@ public class Simulator {
             maxLoad = temp;
         }
         System.out.println(temp);
+
+        long totalCount = 0;
+        for (int i = 0; i < numServers; i++) {
+            totalCount += downstreamOperators[i].getLoad();
+        }
 
         double averageLoad = totalCount / (double) numServers;
         double loadImbalance = (maxLoad - averageLoad) / averageLoad;

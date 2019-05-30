@@ -2,6 +2,7 @@ package slb2.multithreads;
 
 import com.csvreader.CsvReader;
 import slb2.CsvItemReader;
+import slb2.DataType;
 import slb2.Operator;
 import slb2.StreamItemReader;
 
@@ -34,7 +35,11 @@ public class Task implements Runnable {
             startEmulate(getInput(inFileName));
         } else if (inFileName.endsWith(".csv")) {     // for twitter dataset
             try {
-                startEmulate(new CsvItemReader(new CsvReader(inFileName)));
+                if (inFileName.startsWith("twcs")) {
+                    startEmulate(new CsvItemReader(new CsvReader(inFileName), DataType.TWITTER));
+                }else if(inFileName.startsWith("zipf_data")) {
+                    startEmulate(new CsvItemReader(new CsvReader(inFileName), DataType.ZIPF));
+                }
             }catch (Exception e) {
                 e.printStackTrace();
             }

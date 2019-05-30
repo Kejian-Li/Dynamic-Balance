@@ -10,35 +10,40 @@ import java.io.IOException;
 public class CsvItemReader implements ItemReader {
 
     private CsvReader reader;
+    private DataType dataType;
 
-    public CsvItemReader(CsvReader reader) throws IOException {
+    public CsvItemReader(CsvReader reader, DataType dataType) throws IOException {
         reader.readHeaders();
         this.reader = reader;
+        this.dataType = dataType;
     }
 
-    public void skipLine() {
+    public void skipLine() {  // for multithreads
         try {
             reader.skipLine();
-        }catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     @Override
     public String[] nextItem() {
-        String text = null;
+        String[] item = null;
         try {
             if (reader.readRecord()) {
-                text = reader.get(4); // tweet id = 0,...., text = 4,...
+                if (dataType == DataType.TWITTER) {
+                    String text = reader.get(4);            // tweet id = 0,...., text = 4,...
+                    item = text.split(" ");   // split text into words as keys
+                } else if (dataType == DataType.ZIPF) {
+                    item = reader.getValues();
+                }
             } else {
                 return null;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        String[] words = text.split(" ");  // split text into words as keys
-        return words;
+        return item;
     }
 
     public void close() {
