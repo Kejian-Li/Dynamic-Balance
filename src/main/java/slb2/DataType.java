@@ -5,6 +5,8 @@ package slb2;
  */
 public enum DataType {
 
+    WIKI,
+
     TWITTER,
 
     ZIPF

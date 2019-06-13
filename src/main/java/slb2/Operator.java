@@ -35,7 +35,7 @@ public class Operator implements ILoad {
 
     public void receiveElement(Object key) {  // for downstream operator
         elementCount++;
-        hyperLogLog.offer(key);
+        hyperLogLog.offer(Integer.parseInt(key.toString()));
     }
 
     @Override

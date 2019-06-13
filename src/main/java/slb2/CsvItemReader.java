@@ -13,7 +13,7 @@ public class CsvItemReader implements ItemReader {
     private DataType dataType;
 
     public CsvItemReader(CsvReader reader, DataType dataType) throws IOException {
-        reader.readHeaders();
+//        reader.readHeaders();   // for volfram generated zipf data
         this.reader = reader;
         this.dataType = dataType;
     }

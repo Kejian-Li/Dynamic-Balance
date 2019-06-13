@@ -16,7 +16,7 @@ public class Main {
 
         // default
         int threshold = 5;   // frequency threshold of Head
-        float epsilon = 0.0001f;   // lossy count frequency threshold
+        float epsilon = 0.001f;   // lossy count frequency threshold
 
         if (simulatorType == 3 || simulatorType == 4 || simulatorType == 5) {
             threshold = Integer.parseInt(args[5]);
@@ -27,21 +27,22 @@ public class Main {
         }
 
         float delta = 0.2f;
-        float alpha = 0.4f;
         if (simulatorType == 7) {
             delta = Float.parseFloat(args[5]);
-            alpha = Float.parseFloat(args[6]);
+            epsilon = Float.parseFloat(args[6]);
         }
 
         StreamPartitioner partitioner = null;
         String outputFilePrefix = null;
-        if (inFilePathName.endsWith(".gz")) {
-            outputFilePrefix = "wiki_";
+        DataType dataType = null;
+
+        if (inFilePathName.endsWith(".gz")) {           // wiki data
+            dataType = DataType.WIKI;
         } else if (inFilePathName.endsWith(".csv")) {
-            if (inFilePathName.endsWith("zipf_data.csv")) {
-                outputFilePrefix = "zipf_";
-            } else if (inFilePathName.endsWith("twcs.csv")){
-                outputFilePrefix = "twitter_";
+            if (inFilePathName.endsWith("twcs.csv")) {  // twitter data
+                dataType = DataType.TWITTER;
+            } else {  // zipf data
+                dataType = DataType.ZIPF;
             }
         }
 
@@ -66,12 +67,15 @@ public class Main {
             partitioner = new SG_Partitioner(numServers);
             outputFileName = "shuffle";
         } else if (simulatorType == 7) {
-            partitioner = new HolisticPartitioner(numServers, delta, alpha);  //epsilon -> alpha
+//            partitioner = new HolisticPartitioner(numServers, delta, alpha);
+            partitioner = new HolisticV2(numServers, delta, epsilon);
             outputFileName = "holistic";
         }
-        String outFilePathName = outFilePath + "\\" + outputFilePrefix + outputFileName + ".csv";
 
-        Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner);
+
+        String outFilePathName = outFilePath + "\\" + "zipf_" + numServers + "_" + outputFileName + "_epsilon=0.1.csv";
+
+        Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner, dataType);
         simulator.start();
 //        SimulatorMultiThreads simulatorMultiThreads = new SimulatorMultiThreads(numSources, numServers,
 //                inFilePathName, outFilePathName, partitioner);
