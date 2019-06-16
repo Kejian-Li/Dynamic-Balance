@@ -16,7 +16,7 @@ public class Simulator {
     private int numServers;
     private int numSources;
     private String inFilePathName;
-    private StreamPartitioner partitioner;
+    private AbstractPartitioner partitioner;
 
     private Operator[] upstreamOperators;
     private Operator[] downstreamOperators;
@@ -31,7 +31,7 @@ public class Simulator {
     private CsvWriter testWriter;
 
     public Simulator(int numSources, int numServers, String inFilePathName,
-                     String outFilePathName, StreamPartitioner partitioner, DataType dataType) throws Exception {
+                     String outFilePathName, AbstractPartitioner partitioner, DataType dataType) throws Exception {
         this.numSources = numSources;
         this.numServers = numServers;
         this.inFilePathName = inFilePathName;
@@ -466,7 +466,7 @@ public class Simulator {
         System.out.println(temp);
 
         System.out.println("All cardinality: " + allCardinality);
-        long totalCardinality = ((GetStatistics) partitioner).getTotalCardinality();
+        long totalCardinality = partitioner.getTotalCardinality();
         System.out.println("Total cardinality: " + totalCardinality);
         double keyReplicationFactor = allCardinality / (double) totalCardinality;
         System.out.println("Replication factor: " + keyReplicationFactor);
@@ -474,11 +474,11 @@ public class Simulator {
         outputForZipfDifferentSkewness(writer, loadImbalance, keyReplicationFactor);
 //        outputForZipfSameSkewnessDifferentDelta(writer, loadImbalance, keyReplicationFactor);
 
-        Multimap<Integer, Integer> Vk = ((GetStatistics) partitioner).getVk();
-        System.out.println(Vk.keySet().size());
-        for (int x : Vk.keySet()) {
-            System.out.println(x + " " + Vk.get(x));
-        }
+//        Multimap<Integer, Integer> Vk = ((GetStatistics) partitioner).getVk();
+//        System.out.println(Vk.keySet().size());
+//        for (int x : Vk.keySet()) {
+//            System.out.println(x + " " + Vk.get(x));
+//        }
     }
 
     private void outputForZipfDifferentSkewness(CsvWriter writer, double loadImbalance, double replicationRatio) {

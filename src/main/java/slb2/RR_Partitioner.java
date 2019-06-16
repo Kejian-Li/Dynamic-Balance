@@ -15,7 +15,7 @@ import java.util.List;
  * specializing on head. Compared with W-Choices, this algorithm assigns keys of the head in a load-oblivious manner.
  */
 
-public class RR_Partitioner implements StreamPartitioner {
+public class RR_Partitioner extends AbstractPartitioner {
 
 
 
@@ -34,6 +34,7 @@ public class RR_Partitioner implements StreamPartitioner {
     private int threshold;
 
     public RR_Partitioner(int numServers, int threshold) {
+        super();
         this.numServers = numServers;
         this.threshold = threshold;
 
@@ -56,6 +57,7 @@ public class RR_Partitioner implements StreamPartitioner {
 
     @Override
     public int partition(Object key) throws Exception {
+        add(key);
         totalElement++;
         streamSummary.offer(key.toString());
 

@@ -9,7 +9,7 @@ import slb.Constants;
 import java.util.HashMap;
 import java.util.List;
 
-public class DChoices_Partitioner implements StreamPartitioner {
+public class DChoices_Partitioner extends AbstractPartitioner {
 
     private int numServers;
     private long localLoad[];
@@ -22,6 +22,7 @@ public class DChoices_Partitioner implements StreamPartitioner {
     private float epsilon;
 
     public DChoices_Partitioner(int numServers, int threshold, float epsilon) {
+        super();
         this.numServers = numServers;
         this.localLoad = new long[numServers];
         this.streamSummary = new StreamSummary<>(Constants.STREAM_SUMMARY_CAPACITY);
@@ -38,6 +39,7 @@ public class DChoices_Partitioner implements StreamPartitioner {
 
     @Override
     public int partition(Object key) throws Exception {
+        add(key);
         totalElement++;
         streamSummary.offer(key.toString());
 

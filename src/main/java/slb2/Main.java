@@ -32,7 +32,7 @@ public class Main {
             epsilon = Float.parseFloat(args[6]);
         }
 
-        StreamPartitioner partitioner = null;
+        AbstractPartitioner partitioner = null;
         String outputFilePrefix = null;
         DataType dataType = null;
 
@@ -73,7 +73,7 @@ public class Main {
         }
 
 
-        String outFilePathName = outFilePath + "\\" + "zipf_" + numServers + "_" + outputFileName + "_epsilon=0.1.csv";
+        String outFilePathName = outFilePath + "\\" + "zipf_" + numServers + "_" + outputFileName + ".csv";
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner, dataType);
         simulator.start();

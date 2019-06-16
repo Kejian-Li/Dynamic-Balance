@@ -9,7 +9,7 @@ import slb.Constants;
 import java.util.HashMap;
 import java.util.List;
 
-public class WChoices_Partitioner implements StreamPartitioner {
+public class WChoices_Partitioner extends AbstractPartitioner {
 
 
     private final int numServers;
@@ -26,6 +26,7 @@ public class WChoices_Partitioner implements StreamPartitioner {
     private int DEFAULT_CHOICES = 2;  // for tail, same as RR_Partitioner
 
     public WChoices_Partitioner(int numServers, int threshold) {
+        super();
         this.numServers = numServers;
         this.threshold = threshold;
 
@@ -46,6 +47,7 @@ public class WChoices_Partitioner implements StreamPartitioner {
 
     @Override
     public int partition(Object key) throws Exception {
+        add(key);
         totalElement++;
         streamSummary.offer(key.toString());
 

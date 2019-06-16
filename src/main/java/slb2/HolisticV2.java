@@ -12,7 +12,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 
-public class HolisticV2 implements StreamPartitioner, GetStatistics {
+public class HolisticV2 extends AbstractPartitioner implements GetStatistics {
 
     private int numServers;
     private float delta;  // default = 0.2
@@ -29,6 +29,10 @@ public class HolisticV2 implements StreamPartitioner, GetStatistics {
     private Multimap<Integer, Integer> Vk;
 
     private final static int DEFAULT_LOG2M = 24; // 12 for 10^7 keys of 32 bits
+
+    public HolisticV2() {
+        super();
+    }
 
     public HolisticV2(int numServers, float delta, float epsilon) {
 

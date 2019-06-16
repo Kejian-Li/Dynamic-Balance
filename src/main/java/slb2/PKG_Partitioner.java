@@ -2,10 +2,8 @@ package slb2;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import util.cardinality.Hash;
-import util.cardinality.MurmurHash;
 
-public class PKG_Partitioner implements StreamPartitioner {
+public class PKG_Partitioner extends AbstractPartitioner {
 
     private int numServers;
     private long[] localLoad;
@@ -17,6 +15,7 @@ public class PKG_Partitioner implements StreamPartitioner {
     private int CHOICES = 2;
 
     public PKG_Partitioner(int numServers) {
+        super();
         this.numServers = numServers;
         localLoad = new long[numServers];
         seed = new Seed(numServers);
@@ -34,6 +33,7 @@ public class PKG_Partitioner implements StreamPartitioner {
 
     @Override
     public int partition(Object key) {
+        add(key);
         selected[0] = Math.abs(hashes[0].hashBytes(key.toString().getBytes()).asInt() % numServers);
         selected[1] = Math.abs(hashes[1].hashBytes(key.toString().getBytes()).asInt() % numServers);
 //        selected[0] = Math.abs(hashes[0].hash(key) % numServers);
