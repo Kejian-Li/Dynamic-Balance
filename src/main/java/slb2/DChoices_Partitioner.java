@@ -75,7 +75,7 @@ public class DChoices_Partitioner extends AbstractPartitioner {
             choices = d - 1;
         }
 
-        //Hash the Tail accordingly
+        //Hash the key accordingly
         int i = 0;
         int[] selected = new int[choices];
 

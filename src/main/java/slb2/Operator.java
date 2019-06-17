@@ -35,7 +35,8 @@ public class Operator implements ILoad {
 
     public void receiveElement(Object key) {  // for downstream operator
         elementCount++;
-        hyperLogLog.offer(Integer.parseInt(key.toString()));
+//        hyperLogLog.offer(Integer.parseInt(key.toString()));   // for zipf data
+        hyperLogLog.offer(key);
     }
 
     @Override

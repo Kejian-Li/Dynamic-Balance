@@ -7,7 +7,5 @@ import com.google.common.collect.Multimap;
  */
 public interface GetStatistics {
 
-    long getTotalCardinality();
-
-    Multimap<Integer, Integer> getVk();
+    Multimap<Object, Integer> getVk();
 }

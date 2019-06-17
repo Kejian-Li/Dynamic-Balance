@@ -1,46 +1,48 @@
 package slb2;
 
-import com.clearspring.analytics.stream.cardinality.CardinalityMergeException;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import util.cardinality.Hash;
 import util.cardinality.HyperLogLog;
 import util.cardinality.MurmurHash;
-import util.load.CountEntry;
 import util.load.FrequencyException;
 import util.load.LossyCounting;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.Collection;
+import java.util.Iterator;
 
 
-public class HolisticPartitioner implements StreamPartitioner {
+public class HolisticPartitioner extends AbstractPartitioner implements GetStatistics {
 
     private int numServers;
     private float delta;  // default = 0.2
     private double error;  // lossy counting error
-    private float alpha;  // load and cardinality balance factor, default = 0.5
+    private float epsilon;  // default = 10^-4
 
     private Hash hash;
-    private LossyCounting<String> lossyCounting;
+//    private LossyCounting<Integer> lossyCounting;
 
-    private long totalLoad;
+    private LossyCounting<Object> lossyCounting;
+
     private long[] localLoad;               // record downstream load
     private HyperLogLog totalCardinality;
     private HyperLogLog[] localCardinality; // record downstream cardinality
-    private double[] scores;  // reuse for each incoming element
+
+    private Multimap<Object, Integer> Vk;
 
     private final static int DEFAULT_LOG2M = 24; // 12 for 10^7 keys of 32 bits
 
-    public HolisticPartitioner(int numServers, float delta, float alpha) {
+    public HolisticPartitioner() {
+        super();
+    }
+
+    public HolisticPartitioner(int numServers, float delta, float epsilon) {
 
         this.numServers = numServers;
         this.delta = delta;
         this.error = delta * 0.1;
-        this.alpha = alpha;
+        this.epsilon = epsilon;
 
-        totalLoad = 0;
         localLoad = new long[numServers];
 
         hash = MurmurHash.getInstance();
@@ -52,87 +54,98 @@ public class HolisticPartitioner implements StreamPartitioner {
             localCardinality[i] = new HyperLogLog(DEFAULT_LOG2M);
         }
 
-        scores = new double[numServers];
+        Vk = HashMultimap.create();
     }
+
+//    private int x;
+    private long estimatedCount;
+    private float estimatedFrequency;
 
     @Override
     public int partition(Object key) {
         int selected;
 
-        // update total
-        totalLoad++;
+//        x = Integer.parseInt(key.toString());   // for zipf data
+
+        // for statistics
         totalCardinality.offer(key);
 
         try {
-            lossyCounting.add(key.toString());
-        }catch (FrequencyException e) {
+            lossyCounting.add(key);
+        } catch (FrequencyException e) {
             e.printStackTrace();
         }
-        Set<String> frequentItems = getFrequentItems(lossyCounting, delta, totalLoad);
 
-        if (!frequentItems.contains(key.toString())) {
+        estimatedCount = lossyCounting.estimateCount(key);
+
+        estimatedFrequency = (float) estimatedCount / lossyCounting.size();
+
+
+        if (estimatedFrequency < delta) {
             selected = hash(key);
         } else {
-            for (int i = 0; i < numServers; i++) {
-                scores[i] = computeScore(i, key);
+            float Im = updateCurrentLoadImbalance();
+            if (Im <= epsilon) {
+                selected = findLeastLoadOneInVk(key);
+            } else {
+                selected = findLeastLoadOneInV();
+                Vk.put(key, selected);
             }
-            selected = findIndexOfMaxScore();
         }
 
-        // update local
         localLoad[selected]++;
+
+        // for statistics
         localCardinality[selected].offer(key);
 
         return selected;
     }
 
-    private Set<String> getFrequentItems(LossyCounting<String> lossyCounting, float probability, long totalLoad) {
-        Set<String> frequentItems = new HashSet<>();
-        List<CountEntry<String>> counters = lossyCounting.getFrequentItems();
-        for (CountEntry<String> counter : counters) {
-            if (counter.getFrequency() / totalLoad > probability) {
-                frequentItems.add(counter.getItem());
-            }
-        }
-        return frequentItems;
+    private float updateCurrentLoadImbalance() {
+        long maxLoad = findMaxLoadOneInV();
+        float averageLoad = (lossyCounting.size() - 1) / (float) numServers;
+        return averageLoad == 0 ? 0.0f : (maxLoad - averageLoad) / averageLoad;
     }
 
-    private int indicator = 0;
-    private HyperLogLog tempHyperLogLog;
-
-    private double computeScore(int i, Object key) {
-        try {
-            tempHyperLogLog = new HyperLogLog(DEFAULT_LOG2M);
-            tempHyperLogLog.addAll(localCardinality[i]);
-        } catch (CardinalityMergeException e) {
-            e.printStackTrace();
-        }
-        if (tempHyperLogLog.offer(key)) {  // affect cardinality
-            indicator = 0;
-        } else {                           // unaffect cardinality
-            indicator = 1;
-        }
-        tempHyperLogLog = null; // for GC
-
-        double averageCardinality = totalCardinality.cardinality() / (double) numServers;
-        double cardinalityPart = (averageCardinality - localCardinality[i].cardinality()) / averageCardinality;
-
-        double averageLoad = totalLoad / (double) numServers;
-        double loadPart = (averageLoad - localLoad[i]) / averageLoad;
-
-        return indicator + alpha * cardinalityPart + (1 - alpha) * loadPart;
-    }
-
-    private int findIndexOfMaxScore() {
-        int maxIndex = 0;
-        double maxScore = scores[0];
+    private long findMaxLoadOneInV() {
+        long maxOne = localLoad[0];
         for (int i = 1; i < numServers; i++) {
-            if (maxScore < scores[i]) {
-                maxScore = scores[i];
-                maxIndex = i;
+            if (localLoad[i] > maxOne) {
+                maxOne = localLoad[i];
             }
         }
-        return maxIndex;
+        return maxOne;
+    }
+
+    private int findLeastLoadOneInV() {
+        int min = 0;
+        for (int i = 1; i < numServers; i++) {
+            if (localLoad[i] < localLoad[min]) {
+                min = i;
+            }
+        }
+        return min;
+    }
+
+    private int findLeastLoadOneInVk(Object x) {
+        int min = -1;
+        long minOne = Integer.MAX_VALUE;
+        Collection<Integer> values = Vk.get(x);
+        if (values.isEmpty()) {
+            int hashed = hash(x);
+            Vk.put(x, hashed);
+            return hashed;
+        }
+        Iterator<Integer> it = values.iterator();
+        int i;
+        while (it.hasNext()) {
+            i = it.next();
+            if (localLoad[i] < minOne) {
+                minOne = localLoad[i];
+                min = i;
+            }
+        }
+        return min;
     }
 
     private int hash(Object key) {
@@ -143,4 +156,15 @@ public class HolisticPartitioner implements StreamPartitioner {
     public String getName() {
         return "Holistic";
     }
+
+    @Override
+    public long getTotalCardinality() {
+        return totalCardinality.cardinality();
+    }
+
+    @Override
+    public Multimap<Object, Integer> getVk() {
+        return Vk;
+    }
 }
+

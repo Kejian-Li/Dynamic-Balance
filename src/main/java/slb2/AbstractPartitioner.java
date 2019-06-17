@@ -21,7 +21,8 @@ public abstract class AbstractPartitioner implements StreamPartitioner, ICardina
      */
     @Override
     public void add(Object key) {
-        hyperLogLog.offer(Integer.parseInt(key.toString()));
+//        hyperLogLog.offer(Integer.parseInt(key.toString()));  // for zipf whose data element is integer
+        hyperLogLog.offer(key);
     }
 
     @Override
