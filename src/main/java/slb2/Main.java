@@ -16,24 +16,23 @@ public class Main {
 
         // default
         int threshold = 5;   // frequency threshold of Head
+
+        float delta = 0.01f;
         float epsilon = 0.001f;   // lossy count frequency threshold
 
         if (simulatorType == 3 || simulatorType == 4 || simulatorType == 5) {
             threshold = Integer.parseInt(args[5]);
         }
 
+        if (simulatorType == 7) {
+            delta = Float.parseFloat(args[5]);
+        }
+
         if (simulatorType == 3) {
             epsilon = Float.parseFloat(args[6]);
         }
 
-        float delta = 0.2f;
-        if (simulatorType == 7) {
-            delta = Float.parseFloat(args[5]);
-            epsilon = Float.parseFloat(args[6]);
-        }
-
         AbstractPartitioner partitioner = null;
-        String outputFilePrefix = null;
         DataType dataType = null;
 
         if (inFilePathName.endsWith(".gz")) {           // wiki data
@@ -67,12 +66,11 @@ public class Main {
             partitioner = new SG_Partitioner(numServers);
             outputFileName = "shuffle";
         } else if (simulatorType == 7) {
-            partitioner = new HolisticPartitioner(numServers, delta, epsilon);
+            partitioner = new HolisticPartitioner(numServers, delta);
             outputFileName = "holistic";
         }
 
-
-        String outFilePathName = outFilePath + "\\" + "wiki_" + numServers + "_" + outputFileName + ".csv";
+        String outFilePathName = outFilePath + "\\" + "zipf_" + numServers + "_" + outputFileName + ".csv";
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner, dataType);
         simulator.start();

@@ -7,5 +7,5 @@ import com.google.common.collect.Multimap;
  */
 public interface GetStatistics {
 
-    Multimap<Object, Integer> getVk();
+    Multimap<Integer, Integer> getVk();
 }

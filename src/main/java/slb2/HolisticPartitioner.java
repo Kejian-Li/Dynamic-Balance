@@ -15,20 +15,20 @@ import java.util.Iterator;
 public class HolisticPartitioner extends AbstractPartitioner implements GetStatistics {
 
     private int numServers;
-    private float delta;  // default = 0.2
+    private float delta;
     private double error;  // lossy counting error
     private float epsilon;  // default = 10^-4
 
     private Hash hash;
 //    private LossyCounting<Integer> lossyCounting;
 
-    private LossyCounting<Object> lossyCounting;
+    private LossyCounting<Integer> lossyCounting;
 
     private long[] localLoad;               // record downstream load
     private HyperLogLog totalCardinality;
     private HyperLogLog[] localCardinality; // record downstream cardinality
 
-    private Multimap<Object, Integer> Vk;
+    private Multimap<Integer, Integer> Vk;
 
     private final static int DEFAULT_LOG2M = 24; // 12 for 10^7 keys of 32 bits
 
@@ -36,12 +36,12 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         super();
     }
 
-    public HolisticPartitioner(int numServers, float delta, float epsilon) {
+    public HolisticPartitioner(int numServers, float delta) {
 
         this.numServers = numServers;
         this.delta = delta;
         this.error = delta * 0.1;
-        this.epsilon = epsilon;
+        this.epsilon = 0.01f;
 
         localLoad = new long[numServers];
 
@@ -57,64 +57,66 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         Vk = HashMultimap.create();
     }
 
-//    private int x;
+    private int x;
     private long estimatedCount;
-    private float estimatedFrequency;
+    private double estimatedFrequency;
 
     @Override
     public int partition(Object key) {
+
         int selected;
 
-//        x = Integer.parseInt(key.toString());   // for zipf data
+        x = Integer.parseInt(key.toString());   // for zipf data
 
         // for statistics
-        totalCardinality.offer(key);
+        totalCardinality.offer(x);
 
         try {
-            lossyCounting.add(key);
+            lossyCounting.add(x);
         } catch (FrequencyException e) {
             e.printStackTrace();
         }
 
-        estimatedCount = lossyCounting.estimateCount(key);
+        estimatedCount = lossyCounting.estimateCount(x);
 
-        estimatedFrequency = (float) estimatedCount / lossyCounting.size();
+        estimatedFrequency = (double) estimatedCount / lossyCounting.size();
 
-
-        if (estimatedFrequency < delta) {
-            selected = hash(key);
+        if (estimatedFrequency <= delta) {
+            selected = hash(x);
         } else {
-            float Im = updateCurrentLoadImbalance();
-            if (Im <= epsilon) {
-                selected = findLeastLoadOneInVk(key);
+            float Im = updateCurrentPartialLoadImbalance();
+            if (Im < epsilon) {
+                selected = findLeastLoadOneInVk(x);
             } else {
                 selected = findLeastLoadOneInV();
-                Vk.put(key, selected);
+                Vk.put(x, selected);
             }
         }
 
         localLoad[selected]++;
 
         // for statistics
-        localCardinality[selected].offer(key);
+        localCardinality[selected].offer(x);
 
         return selected;
     }
 
-    private float updateCurrentLoadImbalance() {
-        long maxLoad = findMaxLoadOneInV();
-        float averageLoad = (lossyCounting.size() - 1) / (float) numServers;
-        return averageLoad == 0 ? 0.0f : (maxLoad - averageLoad) / averageLoad;
+    private float updateCurrentPartialLoadImbalance() {
+        float averageLoad = (lossyCounting.size()  - 1) / (float) numServers;
+        return averageLoad == 0 ? 0.0f : (getCumulativeAverageLoadOfWorkersFor(x) - averageLoad) / averageLoad;
     }
 
-    private long findMaxLoadOneInV() {
-        long maxOne = localLoad[0];
-        for (int i = 1; i < numServers; i++) {
-            if (localLoad[i] > maxOne) {
-                maxOne = localLoad[i];
-            }
+    private long getCumulativeAverageLoadOfWorkersFor(int x) {
+        Collection<Integer> values = Vk.get(x);
+        if (values.isEmpty()) {
+            return localLoad[hash(x)];
         }
-        return maxOne;
+        Iterator<Integer> it = values.iterator();
+        long load = 0;
+        while (it.hasNext()) {
+            load += localLoad[it.next()];
+        }
+        return load / values.size();
     }
 
     private int findLeastLoadOneInV() {
@@ -127,7 +129,7 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         return min;
     }
 
-    private int findLeastLoadOneInVk(Object x) {
+    private int findLeastLoadOneInVk(int x) {
         int min = -1;
         long minOne = Integer.MAX_VALUE;
         Collection<Integer> values = Vk.get(x);
@@ -149,7 +151,7 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
     }
 
     private int hash(Object key) {
-        return Math.abs(hash.hash(key) % numServers);
+        return Math.abs(hash.hash(key)) % numServers;
     }
 
     @Override
@@ -163,7 +165,7 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
     }
 
     @Override
-    public Multimap<Object, Integer> getVk() {
+    public Multimap<Integer, Integer> getVk() {
         return Vk;
     }
 }

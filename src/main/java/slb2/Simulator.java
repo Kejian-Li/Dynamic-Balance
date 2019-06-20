@@ -3,6 +3,7 @@ package slb2;
 import com.csvreader.CsvReader;
 import com.csvreader.CsvWriter;
 import com.google.common.collect.Multimap;
+import org.omg.CORBA.OBJ_ADAPTER;
 
 import java.io.*;
 import java.util.zip.GZIPInputStream;
@@ -62,16 +63,17 @@ public class Simulator {
             e.printStackTrace();
         }
 
-        String[] columnName = new String[4];
+        String[] columnName = new String[5];
         columnName[0] = "x";  // tuple/M
         columnName[1] = "y";  // load imbalance
         columnName[2] = "z";  // replication factor
-        columnName[3] = "s";  // simulation time/ms
+        columnName[3] = "c";  // cardinality imbalance
+        columnName[4] = "t";  // simulation time
 
         writer = new CsvWriter(outFilePathName);
         try {
-            writer.writeComment("M tuples, load imbalance, replication factor, simulation time");
-            writer.writeRecord(columnName);   // for convenient plot charts
+            writer.writeComment("M tuples, load imbalance, replication factor, cardinality imbalance, simulation time");
+            writer.writeRecord(columnName);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -85,12 +87,13 @@ public class Simulator {
             try {
                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(csvFile, true));  // append
                 writer = new CsvWriter(bufferedWriter, ',');
-                writer.writeComment("zipf z, load imbalance, replication factor, simulation time");
-                String[] columnName = new String[4];
+                writer.writeComment("zipf z, load imbalance, replication factor, cardinality imbalance, simulation time");
+                String[] columnName = new String[5];
                 columnName[0] = "x";  // zipf z
                 columnName[1] = "y";  // load imbalance
                 columnName[2] = "z";  // replication factor
-                columnName[3] = "t";  // simulation time
+                columnName[3] = "c";  // cardinality imbalance
+                columnName[4] = "t";  // simulation time
 
                 writer.writeRecord(columnName);   // for convenient plot charts
             } catch (IOException e) {
@@ -112,11 +115,13 @@ public class Simulator {
             try {
                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(csvFile, true));  // append
                 writer = new CsvWriter(bufferedWriter, ',');
-                writer.writeComment("delta a, load imbalance, replication factor");
-                String[] columnName = new String[3];
-                columnName[0] = "x";  // delta a
+                writer.writeComment("delta a, load imbalance, replication factor, cardinality imbalance, simulation time");
+                String[] columnName = new String[5];
+                columnName[0] = "x";  // zipf z
                 columnName[1] = "y";  // load imbalance
-                columnName[2] = "z";  // replication ratio
+                columnName[2] = "z";  // replication factor
+                columnName[3] = "c";  // cardinality imbalance
+                columnName[4] = "t";  // simulation time
 
                 writer.writeRecord(columnName);   // for convenient plot charts
             } catch (IOException e) {
@@ -137,8 +142,8 @@ public class Simulator {
         System.out.println("Starting to read the item stream...");
         System.out.println(partitioner.getName() + " Partitioner output:");
 
-            initializeCsvWriterByTuple(outFilePathName);
-//        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
+//            initializeCsvWriterByTuple(outFilePathName);
+        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
 //        initializeCsvWriterForZipfSameSkewnessDifferentDelta(outFilePathName);
 
 //        initializeForTest();
@@ -227,10 +232,10 @@ public class Simulator {
             for (int i = 0; i < item.length; i++) {
                 if (++wordCount % PRINT_INTERVAL == 0) {
                     int x = (int) (wordCount / 1000000);
-                    long simulationDuration = System.currentTimeMillis() - simulationStartTime;
-                    System.out.println("Read " + x + "M words.\tSimulation time: " + simulationDuration + " ms");
+                    long simulationTime = System.currentTimeMillis() - simulationStartTime;
+                    System.out.println("Read " + x + "M words.\tSimulation time: " + simulationTime + " ms");
 
-                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationDuration);
+//                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationTime);
 //                    outputPartialResultByTupleForZipf(downstreamOperators, numServers, wordCount);
                 }
 
@@ -246,9 +251,6 @@ public class Simulator {
         }
 
         reader.close();
-//        writer.close();
-
-//        testWriter.close();
 
         System.out.println();
         System.out.println("Finished reading items\nTotal words: " + wordCount);
@@ -305,11 +307,6 @@ public class Simulator {
         }
         loads[numServers - 1] = String.valueOf(temp);
 
-        try {
-            testWriter.writeRecord(loads);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         double averageLoad = wordCount / (double) numServers;
         double loadImbalance = (maxLoad - averageLoad) / averageLoad;
@@ -328,7 +325,7 @@ public class Simulator {
 
 
     private void outputPartialResultByTuple(Operator[] downstreamOperators, int numServers,
-                                            long temporaryCount, int x, long simulationDuration) {
+                                            long temporaryCount, int x, long simulationTime) {
 
         // output for load imbalance
         long maxLoad = downstreamOperators[0].getLoad();
@@ -357,7 +354,7 @@ public class Simulator {
         record[0] = String.valueOf(x);
         record[1] = String.valueOf(loadImbalance);
         record[2] = String.valueOf(replicationFactor);
-        record[3] = String.valueOf(simulationDuration);
+        record[3] = String.valueOf(simulationTime);
 
         try {
             writer.writeRecord(record);
@@ -435,7 +432,7 @@ public class Simulator {
             }
             System.out.print(temp + ",  ");
         }
-        temp = downstreamOperators[numServers - 1].getCardinality();
+        temp = downstreamOperators[numServers - 1].getLoad();
         if (maxLoad < temp) {
             maxLoad = temp;
         }
@@ -454,23 +451,33 @@ public class Simulator {
         System.out.println("<2> Cardinality: ");
 
         long allCardinality = 0;
+        long maxCardinality = 0;
         for (int i = 0; i < numServers - 1; i++) {
             temp = downstreamOperators[i].getCardinality();
             allCardinality += temp;
+            if (maxCardinality < temp) {
+                maxCardinality = temp;
+            }
             System.out.print(temp + ",  ");
         }
         temp = downstreamOperators[numServers - 1].getCardinality();
         allCardinality += temp;
+        if (maxCardinality < temp) {
+            maxCardinality = temp;
+        }
         System.out.println(temp);
 
         System.out.println("All cardinality: " + allCardinality);
         long totalCardinality = partitioner.getTotalCardinality();
         System.out.println("Total cardinality: " + totalCardinality);
-        double keyReplicationFactor = allCardinality / (double) totalCardinality;
-        System.out.println("Replication factor: " + keyReplicationFactor);
+        double averageCardinality = allCardinality / (double) numServers;
 
-//        outputForZipfDifferentSkewness(writer, loadImbalance, keyReplicationFactor, simulationTime);
-//        outputForZipfSameSkewnessDifferentDelta(writer, loadImbalance, keyReplicationFactor);
+        double cardinalityImbalance = (maxCardinality - averageCardinality) / averageCardinality;
+        double replicationFactor = allCardinality / (double) totalCardinality;
+        System.out.println("Replication factor: " + replicationFactor);
+
+        outputForZipfDifferentSkewness(writer, loadImbalance, replicationFactor, cardinalityImbalance, simulationTime);
+//        outputForZipfSameSkewnessDifferentDelta(writer, loadImbalance, replicationFactor, cardinalityImbalance, simulationTime);
 
 //        Multimap<Integer, Integer> Vk = ((GetStatistics) partitioner).getVk();
 //        System.out.println(Vk.keySet().size());
@@ -479,14 +486,17 @@ public class Simulator {
 //        }
     }
 
-    private void outputForZipfDifferentSkewness(CsvWriter writer, double loadImbalance, double replicationFactor,
+    private void outputForZipfDifferentSkewness(CsvWriter writer, double loadImbalance,
+                                                double replicationFactor,
+                                                double cardinalityImbalance,
                                                 long simulationTime) {
-        float z = 2.0f;
-        String[] record = new String[4];
+        float z = 0.8f;
+        String[] record = new String[5];
         record[0] = String.valueOf(z);
         record[1] = String.valueOf(loadImbalance);
         record[2] = String.valueOf(replicationFactor);
-        record[3] = String.valueOf(simulationTime);
+        record[3] = String.valueOf(cardinalityImbalance);
+        record[4] = String.valueOf(simulationTime);
         try {
             writer.writeRecord(record);
             writer.close();
@@ -495,12 +505,17 @@ public class Simulator {
         }
     }
 
-    private void outputForZipfSameSkewnessDifferentDelta(CsvWriter writer, double loadImbalance, double keyReplicationRatio) {
+    private void outputForZipfSameSkewnessDifferentDelta(CsvWriter writer, double loadImbalance,
+                                                         double replicationFactor,
+                                                         double cardinalityImbalance,
+                                                         long simulationTime) {
         float delta = 0.001f;
-        String[] record = new String[3];
+        String[] record = new String[5];
         record[0] = String.valueOf(delta);
         record[1] = String.valueOf(loadImbalance);
-        record[2] = String.valueOf(keyReplicationRatio);
+        record[2] = String.valueOf(replicationFactor);
+        record[3] = String.valueOf(cardinalityImbalance);
+        record[4] = String.valueOf(simulationTime);
         try {
             writer.writeRecord(record);
             writer.close();
