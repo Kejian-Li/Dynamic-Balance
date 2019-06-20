@@ -66,7 +66,8 @@ public class Main {
             partitioner = new SG_Partitioner(numServers);
             outputFileName = "shuffle";
         } else if (simulatorType == 7) {
-            partitioner = new HolisticPartitioner(numServers, delta);
+//            partitioner = new HolisticPartitioner(numServers, delta);
+            partitioner = new HolisticPartitionerForString(numServers, delta);
             outputFileName = "holistic";
         }
 

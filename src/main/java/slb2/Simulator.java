@@ -25,8 +25,6 @@ public class Simulator {
 
     private float skewness;
 
-//    private DataOutputStream dos;
-
     private DataType dataType;
     private CsvWriter writer;
     private CsvWriter testWriter;
@@ -56,11 +54,6 @@ public class Simulator {
         File csvFile = new File(outFilePathName);
         if (csvFile.exists()) {
             csvFile.delete();
-        }
-        try {
-            csvFile.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
         String[] columnName = new String[5];
@@ -95,7 +88,7 @@ public class Simulator {
                 columnName[3] = "c";  // cardinality imbalance
                 columnName[4] = "t";  // simulation time
 
-                writer.writeRecord(columnName);   // for convenient plot charts
+                writer.writeRecord(columnName);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -142,8 +135,8 @@ public class Simulator {
         System.out.println("Starting to read the item stream...");
         System.out.println(partitioner.getName() + " Partitioner output:");
 
-//            initializeCsvWriterByTuple(outFilePathName);
-        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
+            initializeCsvWriterByTuple(outFilePathName);
+//        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
 //        initializeCsvWriterForZipfSameSkewnessDifferentDelta(outFilePathName);
 
 //        initializeForTest();
@@ -160,9 +153,9 @@ public class Simulator {
             }
         }
 
-//        outputFinalResultByTuple(downstreamOperators, numServers);  // by tuples
+        outputFinalResultByTuple(downstreamOperators, numServers);  // by tuples
 
-        outputFinalResultForZipf(downstreamOperators, numServers, simulationTime);  // by different z for zipf
+//        outputFinalResultForZipf(downstreamOperators, numServers, simulationTime);  // by different z for zipf
     }
 
     private BufferedReader getInput(String inFileName) throws IOException {
@@ -193,16 +186,17 @@ public class Simulator {
         int itemCount = 0;
         // core loop
         while (item != null) {
+            String key = item[1]; // url of wikipedia data as key
+
+            operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
+            operator.processElement(key);
+
             if (++itemCount % PRINT_INTERVAL == 0) {
-                int x = itemCount / 1000000;
+                int x = (int) (itemCount / PRINT_INTERVAL);
                 long simulationDuration = System.currentTimeMillis() - simulationStartTime;
                 System.out.println("Read " + x + "M tweets.\tSimulation time: " + simulationDuration + " ms");
                 outputPartialResultByTuple(downstreamOperators, numServers, itemCount, x, simulationDuration);
             }
-            String key = item[1]; // for wikipedia data
-
-            operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
-            operator.processElement(key);
 
             sourceIndex++;
             if (sourceIndex == numSources) {
@@ -230,17 +224,18 @@ public class Simulator {
         // core loop
         while (item != null) {
             for (int i = 0; i < item.length; i++) {
-                if (++wordCount % PRINT_INTERVAL == 0) {
-                    int x = (int) (wordCount / 1000000);
-                    long simulationTime = System.currentTimeMillis() - simulationStartTime;
-                    System.out.println("Read " + x + "M words.\tSimulation time: " + simulationTime + " ms");
-
-//                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationTime);
-//                    outputPartialResultByTupleForZipf(downstreamOperators, numServers, wordCount);
-                }
 
                 operator = upstreamOperators[sourceIndex];   // round-robin emulation for upstream operators
                 operator.processElement(item[i]);
+
+                if (++wordCount % PRINT_INTERVAL == 0) {
+                    int x = (int) (wordCount / PRINT_INTERVAL);
+                    long simulationTime = System.currentTimeMillis() - simulationStartTime;
+                    System.out.println("Read " + x + "M words.\tSimulation time: " + simulationTime + " ms");
+
+                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationTime);
+//                    outputPartialResultByTupleForZipf(downstreamOperators, numServers, wordCount);
+                }
 
                 sourceIndex++;
                 if (sourceIndex == numSources) {
@@ -329,11 +324,11 @@ public class Simulator {
 
         // output for load imbalance
         long maxLoad = downstreamOperators[0].getLoad();
-        long temp;
+        long tempLoad;
         for (int i = 1; i < numServers; i++) {
-            temp = downstreamOperators[i].getLoad();
-            if (maxLoad < temp) {
-                maxLoad = temp;
+            tempLoad = downstreamOperators[i].getLoad();
+            if (maxLoad < tempLoad) {
+                maxLoad = tempLoad;
             }
         }
 
@@ -342,18 +337,34 @@ public class Simulator {
         System.out.println("Load Imbalance: " + loadImbalance);
 
         long allCardinality = 0;
-        for (int i = 0; i < numServers; i++) {
-            allCardinality += downstreamOperators[i].getCardinality();
+        long tempCardinality = 0;
+        long maxCardinality = 0;
+        for (int i = 0; i < numServers - 1; i++) {
+            tempCardinality = downstreamOperators[i].getCardinality();
+            allCardinality += tempCardinality;
+            if (maxCardinality < tempCardinality) {
+                maxCardinality = tempCardinality;
+            }
         }
 
+        tempCardinality = downstreamOperators[numServers - 1].getCardinality();
+        allCardinality += tempCardinality;
+        if (maxCardinality < tempCardinality) {
+            maxCardinality = tempCardinality;
+        }
+        System.out.println(tempCardinality);
+
+        double averageCardinality = allCardinality / numServers;
+        double cardinalityImbalance = (maxCardinality - averageCardinality) / averageCardinality;
         double replicationFactor = (double) allCardinality / partitioner.getTotalCardinality();
         System.out.println("Replication factor: " + replicationFactor);
         System.out.println();
 
-        String[] record = new String[4];
+        String[] record = new String[5];
         record[0] = String.valueOf(x);
         record[1] = String.valueOf(loadImbalance);
         record[2] = String.valueOf(replicationFactor);
+        record[3] = String.valueOf(cardinalityImbalance);
         record[3] = String.valueOf(simulationTime);
 
         try {
@@ -490,7 +501,7 @@ public class Simulator {
                                                 double replicationFactor,
                                                 double cardinalityImbalance,
                                                 long simulationTime) {
-        float z = 0.8f;
+        float z = 2.0f;
         String[] record = new String[5];
         record[0] = String.valueOf(z);
         record[1] = String.valueOf(loadImbalance);
