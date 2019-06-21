@@ -25,10 +25,10 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
 
     private Hash hash;
 
-    private LossyCounting<String> lossyCounting;
+    private LossyCounting<Object> lossyCounting;
 
     private long[] localLoad;               // record downstream load
-    private Multimap<String, Integer> Vk;   // routing table for heavy hitters
+    private Multimap<Object, Integer> Vk;   // routing table for heavy hitters
 
     public HolisticPartitionerForString(int numServers, float delta) {
         super();
@@ -49,10 +49,8 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
     private double estimatedFrequency;
 
     @Override
-    public int partition(Object k) {
+    public int partition(Object key) {
         int selected;
-
-        String key = k.toString();
 
         add(key);
 
@@ -83,22 +81,22 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
         return selected;
     }
 
-    private float updateRegionalLoadImbalance(String x) {
+    private float updateRegionalLoadImbalance(Object x) {
         float averageLoad = (lossyCounting.size() - 1) / (float) numServers;
-        return averageLoad == 0 ? 0.0f : (getCumulativeAverageLoadOfWorkersFor(x) - averageLoad) / averageLoad;
+        return averageLoad == 0 ? 0.0f : (getRegionalLoad(x) - averageLoad) / averageLoad;
     }
 
-    private long getCumulativeAverageLoadOfWorkersFor(String x) {
+    private long getRegionalLoad(Object x) {
         Collection<Integer> values = Vk.get(x);
         if (values.isEmpty()) {
             return localLoad[hash(x)];
         }
         Iterator<Integer> it = values.iterator();
-        long load = 0;
+        long regionalLoad = 0;
         while (it.hasNext()) {
-            load += localLoad[it.next()];
+            regionalLoad += localLoad[it.next()];
         }
-        return load / values.size();
+        return regionalLoad / values.size();
     }
 
     private int findLeastLoadOneInV() {
@@ -111,7 +109,7 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
         return min;
     }
 
-    private int findLeastLoadOneInVk(String x) {
+    private int findLeastLoadOneInVk(Object x) {
         int min = -1;
         long minOne = Integer.MAX_VALUE;
         Collection<Integer> values = Vk.get(x);
@@ -132,7 +130,7 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
         return min;
     }
 
-    private int hash(String key) {
+    private int hash(Object key) {
         return Math.abs(hash.hash(key)) % numServers;
     }
 

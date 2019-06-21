@@ -16,6 +16,7 @@ import java.util.Iterator;
  */
 public class HolisticPartitioner extends AbstractPartitioner {
 
+    private static final float DEFAULT_EPSILON = 0.01f;
     private int numServers;
     private float delta;
     private double error;  // lossy counting error
@@ -34,7 +35,7 @@ public class HolisticPartitioner extends AbstractPartitioner {
         this.numServers = numServers;
         this.delta = delta;
         this.error = delta * 0.1;
-        this.epsilon = 0.01f;
+        this.epsilon = DEFAULT_EPSILON;
 
         localLoad = new long[numServers];
 
@@ -83,20 +84,20 @@ public class HolisticPartitioner extends AbstractPartitioner {
 
     private float updateRegionalLoadImbalance(int x) {
         float averageLoad = (lossyCounting.size() - 1) / (float) numServers;
-        return averageLoad == 0 ? 0.0f : (getCumulativeAverageLoadOfWorkersFor(x) - averageLoad) / averageLoad;
+        return averageLoad == 0 ? 0.0f : (getRegionalLoad(x) - averageLoad) / averageLoad;
     }
 
-    private long getCumulativeAverageLoadOfWorkersFor(int x) {
+    private long getRegionalLoad(int x) {
         Collection<Integer> values = Vk.get(x);
         if (values.isEmpty()) {
             return localLoad[hash(x)];
         }
         Iterator<Integer> it = values.iterator();
-        long load = 0;
+        long regionalLoad = 0;
         while (it.hasNext()) {
-            load += localLoad[it.next()];
+            regionalLoad += localLoad[it.next()];
         }
-        return load / values.size();
+        return regionalLoad / values.size();
     }
 
     private int findLeastLoadOneInV() {
@@ -132,6 +133,10 @@ public class HolisticPartitioner extends AbstractPartitioner {
 
     private int hash(int key) {
         return Math.abs(hash.hash(key)) % numServers;
+    }
+
+    public Multimap<Integer, Integer> getVk() {
+        return Vk;
     }
 
     @Override

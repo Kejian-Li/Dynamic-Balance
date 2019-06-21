@@ -33,9 +33,9 @@ public class Operator implements ILoad {
         downstreamOperators[selected].receiveElement(key);
     }
 
-    public void receiveElement(Object key) {  // for downstream operator
+    public void receiveElement(Object key) {  // for downstream operators
         elementCount++;
-        hyperLogLog.offer(key.toString());
+        hyperLogLog.offer(key);
     }
 
     @Override

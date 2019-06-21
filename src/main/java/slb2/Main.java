@@ -68,12 +68,12 @@ public class Main {
             partitioner = new SG_Partitioner(numServers);
             outputFileName = "shuffle";
         } else if (simulatorType == 7) {
-//            partitioner = new HolisticPartitioner(numServers, delta);
-            partitioner = new HolisticPartitionerForString(numServers, delta);
+            partitioner = new HolisticPartitioner(numServers, delta);
+//            partitioner = new HolisticPartitionerForString(numServers, delta);
             outputFileName = "holistic";
         }
 
-        String outFilePathName = outFilePath + "\\" + "twitter_" + numServers + "_" + outputFileName + ".csv";
+        String outFilePathName = outFilePath + "\\" + "zipf_" + numServers + "_" + outputFileName + "_test.csv";
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner, dataType);
         simulator.start();
