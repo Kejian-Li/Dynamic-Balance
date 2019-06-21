@@ -2,7 +2,6 @@ package slb2.partitioners;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import slb2.GetStatistics;
 import util.cardinality.Hash;
 import util.cardinality.MurmurHash;
 import util.load.FrequencyException;
@@ -15,7 +14,7 @@ import java.util.Iterator;
 /**
  * Class for Zipf data set whose elements are numbers.
  */
-public class HolisticPartitioner extends AbstractPartitioner implements GetStatistics {
+public class HolisticPartitioner extends AbstractPartitioner {
 
     private int numServers;
     private float delta;
@@ -30,14 +29,8 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
 
     private Multimap<Integer, Integer> Vk;
 
-    private final static int DEFAULT_LOG2M = 12; // 12 for 10^7 keys of 32 bits
-
-    public HolisticPartitioner() {
-        super();
-    }
-
     public HolisticPartitioner(int numServers, float delta) {
-
+        super();
         this.numServers = numServers;
         this.delta = delta;
         this.error = delta * 0.1;
@@ -57,9 +50,7 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
 
     @Override
     public int partition(Object key) {
-
         int selected;
-
         x = Integer.parseInt(key.toString());   // for zipf data
 
         add(x);
@@ -71,14 +62,13 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         }
 
         estimatedCount = lossyCounting.estimateCount(x);
-
         estimatedFrequency = (double) estimatedCount / lossyCounting.size();
 
         if (estimatedFrequency <= delta) {
             selected = hash(x);
         } else {
             float RIm = updateRegionalLoadImbalance(x);
-            if (RIm < epsilon) {
+            if (RIm <= epsilon) {
                 selected = findLeastLoadOneInVk(x);
             } else {
                 selected = findLeastLoadOneInV();
@@ -92,7 +82,7 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
     }
 
     private float updateRegionalLoadImbalance(int x) {
-        float averageLoad = (lossyCounting.size()  - 1) / (float) numServers;
+        float averageLoad = (lossyCounting.size() - 1) / (float) numServers;
         return averageLoad == 0 ? 0.0f : (getCumulativeAverageLoadOfWorkersFor(x) - averageLoad) / averageLoad;
     }
 
@@ -140,7 +130,7 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         return min;
     }
 
-    private int hash(Object key) {
+    private int hash(int key) {
         return Math.abs(hash.hash(key)) % numServers;
     }
 
@@ -149,9 +139,5 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         return "Holistic";
     }
 
-    @Override
-    public Multimap<Integer, Integer> getVk() {
-        return Vk;
-    }
 }
 

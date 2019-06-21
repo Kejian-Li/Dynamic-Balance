@@ -3,7 +3,6 @@ package slb2.partitioners;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import slb2.GetStatistics;
 import util.cardinality.Hash;
 import util.cardinality.MurmurHash;
 import util.load.FrequencyException;
@@ -16,30 +15,27 @@ import java.util.Iterator;
  * Class for data set whose elements are strings.
  */
 
-public class HolisticPartitionerForString extends AbstractPartitioner implements GetStatistics {
+public class HolisticPartitionerForString extends AbstractPartitioner {
 
+    private static final float DEFAULT_EPSILON = 0.01f;
     private int numServers;
     private float delta;
     private double error;  // lossy counting error
-    private float epsilon;  // default = 10^-4
+    private float epsilon;  // default = 0.01f
 
     private Hash hash;
 
     private LossyCounting<String> lossyCounting;
 
     private long[] localLoad;               // record downstream load
-    private Multimap<String, Integer> Vk;
-
-    public HolisticPartitionerForString() {
-        super();
-    }
+    private Multimap<String, Integer> Vk;   // routing table for heavy hitters
 
     public HolisticPartitionerForString(int numServers, float delta) {
-
+        super();
         this.numServers = numServers;
         this.delta = delta;
         this.error = delta * 0.1;
-        this.epsilon = 0.01f;
+        this.epsilon = DEFAULT_EPSILON;
 
         localLoad = new long[numServers];
 
@@ -68,13 +64,13 @@ public class HolisticPartitionerForString extends AbstractPartitioner implements
 
         estimatedCount = lossyCounting.estimateCount(key);
 
-        estimatedFrequency = (double) estimatedCount / lossyCounting.size();
+        estimatedFrequency = (float) estimatedCount / lossyCounting.size();
 
         if (estimatedFrequency <= delta) {
             selected = hash(key);
         } else {
             float RIm = updateRegionalLoadImbalance(key);
-            if (RIm < epsilon) {
+            if (RIm <= epsilon) {
                 selected = findLeastLoadOneInVk(key);
             } else {
                 selected = findLeastLoadOneInV();
@@ -88,7 +84,7 @@ public class HolisticPartitionerForString extends AbstractPartitioner implements
     }
 
     private float updateRegionalLoadImbalance(String x) {
-        float averageLoad = (lossyCounting.size()  - 1) / (float) numServers;
+        float averageLoad = (lossyCounting.size() - 1) / (float) numServers;
         return averageLoad == 0 ? 0.0f : (getCumulativeAverageLoadOfWorkersFor(x) - averageLoad) / averageLoad;
     }
 
@@ -136,7 +132,7 @@ public class HolisticPartitionerForString extends AbstractPartitioner implements
         return min;
     }
 
-    private int hash(Object key) {
+    private int hash(String key) {
         return Math.abs(hash.hash(key)) % numServers;
     }
 
@@ -145,9 +141,5 @@ public class HolisticPartitionerForString extends AbstractPartitioner implements
         return "Holistic";
     }
 
-    @Override
-    public Multimap<Integer, Integer> getVk() {
-        return null;
-    }
 }
 

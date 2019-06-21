@@ -9,7 +9,7 @@ public class Operator implements ILoad {
 
     private long elementCount;        // for downstream operators to get load statistics
     private HyperLogLogPlus hyperLogLog;  // for other algorithm to get cardinality statistics
-    private final int DEFAULT_LOG2M = 12;
+    private final int DEFAULT_LOG2M = 24;
 
     public Operator() {  // for downstream operators
         elementCount = 0;
@@ -35,8 +35,7 @@ public class Operator implements ILoad {
 
     public void receiveElement(Object key) {  // for downstream operator
         elementCount++;
-//        hyperLogLog.offer(Integer.parseInt(key.toString()));   // for zipf data
-        hyperLogLog.offer(key);
+        hyperLogLog.offer(key.toString());
     }
 
     @Override

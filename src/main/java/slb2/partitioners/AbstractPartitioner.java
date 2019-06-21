@@ -4,12 +4,12 @@ import util.cardinality.HyperLogLogPlus;
 
 
 /**
- * Abstract class for partitioners except Holistic.
+ * Abstract class for all partitioners.
  */
 public abstract class AbstractPartitioner implements StreamPartitioner, ICardinality {
 
     protected HyperLogLogPlus hyperLogLog;
-    private final static int DEFAULT_LOG2M = 12; // 12 for 10^7 keys of 32 bits
+    private final static int DEFAULT_LOG2M = 24;
 
     public AbstractPartitioner() {
         hyperLogLog = new HyperLogLogPlus(DEFAULT_LOG2M);
@@ -22,7 +22,7 @@ public abstract class AbstractPartitioner implements StreamPartitioner, ICardina
     @Override
     public void add(Object key) {
 //        hyperLogLog.offer(Integer.parseInt(key.toString()));  // for zipf whose data element is integer
-        hyperLogLog.offer(key);
+        hyperLogLog.offer(key.toString());
     }
 
     @Override

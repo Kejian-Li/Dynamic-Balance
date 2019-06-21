@@ -5,7 +5,7 @@ import com.csvreader.CsvReader;
 import java.io.IOException;
 
 /**
- * For csv format file, eg., twitter dataset
+ * For csv format file, e.g., twitter data set
  */
 public class CsvItemReader implements ItemReader {
 
@@ -13,18 +13,10 @@ public class CsvItemReader implements ItemReader {
     private DataType dataType;
 
     public CsvItemReader(CsvReader reader, DataType dataType) throws IOException {
-//        reader.readHeaders();   // for volfram generated zipf data
         this.reader = reader;
         this.dataType = dataType;
     }
 
-    public void skipLine() {  // for multithreads
-        try {
-            reader.skipLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public String[] nextItem() {
