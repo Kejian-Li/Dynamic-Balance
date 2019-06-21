@@ -1,4 +1,4 @@
-package slb2;
+package slb2.partitioners;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;

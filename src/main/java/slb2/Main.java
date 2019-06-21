@@ -1,5 +1,7 @@
 package slb2;
 
+import slb2.partitioners.*;
+
 public class Main {
 
 
@@ -66,8 +68,8 @@ public class Main {
             partitioner = new SG_Partitioner(numServers);
             outputFileName = "shuffle";
         } else if (simulatorType == 7) {
-//            partitioner = new HolisticPartitioner(numServers, delta);
-            partitioner = new HolisticPartitionerForString(numServers, delta);
+            partitioner = new HolisticPartitioner(numServers, delta);
+//            partitioner = new HolisticPartitionerForString(numServers, delta);
             outputFileName = "holistic";
         }
 
@@ -75,9 +77,7 @@ public class Main {
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner, dataType);
         simulator.start();
-//        SimulatorMultiThreads simulatorMultiThreads = new SimulatorMultiThreads(numSources, numServers,
-//                inFilePathName, outFilePathName, partitioner);
-//        simulatorMultiThreads.start();
+
     }
 
     private static void ErrorMessage() {

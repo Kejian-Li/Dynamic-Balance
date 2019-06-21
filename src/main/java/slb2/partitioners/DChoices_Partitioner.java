@@ -1,10 +1,13 @@
-package slb2;
+package slb2.partitioners;
 
 import com.clearspring.analytics.stream.Counter;
 import com.clearspring.analytics.stream.StreamSummary;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import slb.Constants;
+import slb2.partitioners.AbstractPartitioner;
+import slb2.partitioners.PHeadCount;
+import slb2.partitioners.Seed;
 
 import java.util.HashMap;
 import java.util.List;

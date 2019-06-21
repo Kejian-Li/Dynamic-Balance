@@ -2,8 +2,8 @@ package slb2;
 
 import com.csvreader.CsvReader;
 import com.csvreader.CsvWriter;
-import com.google.common.collect.Multimap;
-import org.omg.CORBA.OBJ_ADAPTER;
+import slb2.partitioners.AbstractPartitioner;
+import slb2.partitioners.Operator;
 
 import java.io.*;
 import java.util.zip.GZIPInputStream;
@@ -37,12 +37,12 @@ public class Simulator {
         this.partitioner = partitioner;
         this.dataType = dataType;
 
-        downstreamOperators = new Operator[numServers]; // Operator entity for downstream
+        downstreamOperators = new Operator[numServers]; // Operators for downstream
         for (int i = 0; i < numServers; i++) {
             downstreamOperators[i] = new Operator();
         }
 
-        upstreamOperators = new Operator[numSources]; // Operator entity for upstream
+        upstreamOperators = new Operator[numSources]; // Operators for upstream
         for (int i = 0; i < numSources; i++) {
             upstreamOperators[i] = new Operator(partitioner, downstreamOperators);
         }
@@ -135,8 +135,8 @@ public class Simulator {
         System.out.println("Starting to read the item stream...");
         System.out.println(partitioner.getName() + " Partitioner output:");
 
-            initializeCsvWriterByTuple(outFilePathName);
-//        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
+//        initializeCsvWriterByTuple(outFilePathName);
+        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
 //        initializeCsvWriterForZipfSameSkewnessDifferentDelta(outFilePathName);
 
 //        initializeForTest();
@@ -153,9 +153,9 @@ public class Simulator {
             }
         }
 
-        outputFinalResultByTuple(downstreamOperators, numServers);  // by tuples
+//        outputFinalResultByTuple(downstreamOperators, numServers);  // by tuples
 
-//        outputFinalResultForZipf(downstreamOperators, numServers, simulationTime);  // by different z for zipf
+        outputFinalResultForZipf(downstreamOperators, numServers, simulationTime);  // by different z for zipf
     }
 
     private BufferedReader getInput(String inFileName) throws IOException {
@@ -233,7 +233,7 @@ public class Simulator {
                     long simulationTime = System.currentTimeMillis() - simulationStartTime;
                     System.out.println("Read " + x + "M words.\tSimulation time: " + simulationTime + " ms");
 
-                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationTime);
+//                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationTime);
 //                    outputPartialResultByTupleForZipf(downstreamOperators, numServers, wordCount);
                 }
 
@@ -454,7 +454,7 @@ public class Simulator {
             totalCount += downstreamOperators[i].getLoad();
         }
 
-        double averageLoad = totalCount / (double) numServers;
+        double averageLoad = totalCount / numServers;
         double loadImbalance = (maxLoad - averageLoad) / averageLoad;
         System.out.println("Load Imbalance: " + loadImbalance);
         System.out.println();
@@ -478,14 +478,13 @@ public class Simulator {
         }
         System.out.println(temp);
 
-        System.out.println("All cardinality: " + allCardinality);
         long totalCardinality = partitioner.getTotalCardinality();
-        System.out.println("Total cardinality: " + totalCardinality);
-        double averageCardinality = allCardinality / (double) numServers;
-
+        double averageCardinality = allCardinality / numServers;
         double cardinalityImbalance = (maxCardinality - averageCardinality) / averageCardinality;
+        System.out.println("Cardinality imbalance: " + cardinalityImbalance);
+
         double replicationFactor = allCardinality / (double) totalCardinality;
-        System.out.println("Replication factor: " + replicationFactor);
+        System.out.println("Replication factor: " + allCardinality + "/" + totalCardinality + "=" + replicationFactor);
 
         outputForZipfDifferentSkewness(writer, loadImbalance, replicationFactor, cardinalityImbalance, simulationTime);
 //        outputForZipfSameSkewnessDifferentDelta(writer, loadImbalance, replicationFactor, cardinalityImbalance, simulationTime);
@@ -501,7 +500,7 @@ public class Simulator {
                                                 double replicationFactor,
                                                 double cardinalityImbalance,
                                                 long simulationTime) {
-        float z = 2.0f;
+        float z = 1.4f;
         String[] record = new String[5];
         record[0] = String.valueOf(z);
         record[1] = String.valueOf(loadImbalance);

@@ -1,9 +1,10 @@
-package slb2;
+package slb2.partitioners;
+
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import slb2.GetStatistics;
 import util.cardinality.Hash;
-import util.cardinality.HyperLogLog;
 import util.cardinality.MurmurHash;
 import util.load.FrequencyException;
 import util.load.LossyCounting;
@@ -11,11 +12,11 @@ import util.load.LossyCounting;
 import java.util.Collection;
 import java.util.Iterator;
 
-
 /**
- * Class for Zipf data set whose elements are numbers.
+ * Class for data set whose elements are strings.
  */
-public class HolisticPartitioner extends AbstractPartitioner implements GetStatistics {
+
+public class HolisticPartitionerForString extends AbstractPartitioner implements GetStatistics {
 
     private int numServers;
     private float delta;
@@ -24,21 +25,16 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
 
     private Hash hash;
 
-    private LossyCounting<Integer> lossyCounting;
+    private LossyCounting<String> lossyCounting;
 
     private long[] localLoad;               // record downstream load
-    private HyperLogLog totalCardinality;
-    private HyperLogLog[] localCardinality; // record downstream cardinality
+    private Multimap<String, Integer> Vk;
 
-    private Multimap<Integer, Integer> Vk;
-
-    private final static int DEFAULT_LOG2M = 24; // 12 for 10^7 keys of 32 bits
-
-    public HolisticPartitioner() {
+    public HolisticPartitionerForString() {
         super();
     }
 
-    public HolisticPartitioner(int numServers, float delta) {
+    public HolisticPartitionerForString(int numServers, float delta) {
 
         this.numServers = numServers;
         this.delta = delta;
@@ -50,65 +46,53 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         hash = MurmurHash.getInstance();
         lossyCounting = new LossyCounting<>(error);
 
-        totalCardinality = new HyperLogLog(DEFAULT_LOG2M);
-        localCardinality = new HyperLogLog[numServers];
-        for (int i = 0; i < numServers; i++) {
-            localCardinality[i] = new HyperLogLog(DEFAULT_LOG2M);
-        }
-
         Vk = HashMultimap.create();
     }
 
-    private int x;
     private long estimatedCount;
     private double estimatedFrequency;
 
     @Override
-    public int partition(Object key) {
-
+    public int partition(Object k) {
         int selected;
 
-        x = Integer.parseInt(key.toString());   // for zipf data
+        String key = k.toString();
 
-        // for statistics
-        totalCardinality.offer(x);
+        add(key);
 
         try {
-            lossyCounting.add(x);
+            lossyCounting.add(key);
         } catch (FrequencyException e) {
             e.printStackTrace();
         }
 
-        estimatedCount = lossyCounting.estimateCount(x);
+        estimatedCount = lossyCounting.estimateCount(key);
 
         estimatedFrequency = (double) estimatedCount / lossyCounting.size();
 
         if (estimatedFrequency <= delta) {
-            selected = hash(x);
+            selected = hash(key);
         } else {
-            float RIm = updateRegionalLoadImbalance(x);
+            float RIm = updateRegionalLoadImbalance(key);
             if (RIm < epsilon) {
-                selected = findLeastLoadOneInVk(x);
+                selected = findLeastLoadOneInVk(key);
             } else {
                 selected = findLeastLoadOneInV();
-                Vk.put(x, selected);
+                Vk.put(key, selected);
             }
         }
 
         localLoad[selected]++;
 
-        // for statistics
-        localCardinality[selected].offer(x);
-
         return selected;
     }
 
-    private float updateRegionalLoadImbalance(int x) {
+    private float updateRegionalLoadImbalance(String x) {
         float averageLoad = (lossyCounting.size()  - 1) / (float) numServers;
         return averageLoad == 0 ? 0.0f : (getCumulativeAverageLoadOfWorkersFor(x) - averageLoad) / averageLoad;
     }
 
-    private long getCumulativeAverageLoadOfWorkersFor(int x) {
+    private long getCumulativeAverageLoadOfWorkersFor(String x) {
         Collection<Integer> values = Vk.get(x);
         if (values.isEmpty()) {
             return localLoad[hash(x)];
@@ -131,7 +115,7 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
         return min;
     }
 
-    private int findLeastLoadOneInVk(int x) {
+    private int findLeastLoadOneInVk(String x) {
         int min = -1;
         long minOne = Integer.MAX_VALUE;
         Collection<Integer> values = Vk.get(x);
@@ -162,13 +146,8 @@ public class HolisticPartitioner extends AbstractPartitioner implements GetStati
     }
 
     @Override
-    public long getTotalCardinality() {
-        return totalCardinality.cardinality();
-    }
-
-    @Override
     public Multimap<Integer, Integer> getVk() {
-        return Vk;
+        return null;
     }
 }
 

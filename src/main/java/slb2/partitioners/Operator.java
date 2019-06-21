@@ -1,6 +1,6 @@
-package slb2;
+package slb2.partitioners;
 
-import util.cardinality.HyperLogLog;
+import util.cardinality.HyperLogLogPlus;
 
 public class Operator implements ILoad {
 
@@ -8,12 +8,12 @@ public class Operator implements ILoad {
     private Operator[] downstreamOperators;  // for upstream operators to have references of downstream operators
 
     private long elementCount;        // for downstream operators to get load statistics
-    private HyperLogLog hyperLogLog;  // for other algorithm to get cardinality statistics
+    private HyperLogLogPlus hyperLogLog;  // for other algorithm to get cardinality statistics
     private final int DEFAULT_LOG2M = 12;
 
     public Operator() {  // for downstream operators
         elementCount = 0;
-        hyperLogLog = new HyperLogLog(DEFAULT_LOG2M);
+        hyperLogLog = new HyperLogLogPlus(DEFAULT_LOG2M);
     }
 
     public Operator(StreamPartitioner partitioner, Operator[] downstreamOperators) {  // for upstream operators
@@ -49,3 +49,4 @@ public class Operator implements ILoad {
         return hyperLogLog.cardinality();
     }
 }
+

@@ -1,6 +1,6 @@
-package slb2;
+package slb2.partitioners;
 
-import util.cardinality.HyperLogLog;
+import util.cardinality.HyperLogLogPlus;
 
 
 /**
@@ -8,11 +8,11 @@ import util.cardinality.HyperLogLog;
  */
 public abstract class AbstractPartitioner implements StreamPartitioner, ICardinality {
 
-    protected HyperLogLog hyperLogLog;
-    private final static int DEFAULT_LOG2M = 24; // 12 for 10^7 keys of 32 bits
+    protected HyperLogLogPlus hyperLogLog;
+    private final static int DEFAULT_LOG2M = 12; // 12 for 10^7 keys of 32 bits
 
     public AbstractPartitioner() {
-        hyperLogLog = new HyperLogLog(DEFAULT_LOG2M);
+        hyperLogLog = new HyperLogLogPlus(DEFAULT_LOG2M);
     }
 
     /**
