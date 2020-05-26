@@ -6,14 +6,11 @@ import com.csvreader.CsvWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 public class CsvTest {
 
     public static void main(String[] args) throws IOException {
-        String filePathName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\paper_writing\\hello.csv";
+        String filePathName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\output\\twitter_out\\32\\hello.csv";
 
         File csvFile = new File(filePathName);
         if (csvFile.exists()) {

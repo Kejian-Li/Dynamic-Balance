@@ -3,8 +3,10 @@ package slb2;
 import com.csvreader.CsvReader;
 import com.csvreader.CsvWriter;
 import slb2.partitioners.AbstractPartitioner;
-import slb2.partitioners.HolisticPartitioner;
+import slb2.partitioners.HolisticPartitionerForString;
 import slb2.partitioners.Operator;
+import slb2.reader.CsvItemReader;
+import slb2.reader.DataType;
 
 import java.io.*;
 import java.util.zip.GZIPInputStream;
@@ -24,6 +26,7 @@ public class Simulator {
     private Operator[] downstreamOperators;
     private String outFilePathName;
     private DataType dataType;
+
     private CsvWriter writer;
 
     public Simulator(int numSources, int numServers, String inFilePathName,
@@ -48,21 +51,23 @@ public class Simulator {
 
     private void initializeCsvWriterByTuple(String outFilePathName) {
 
+
         File csvFile = new File(outFilePathName);
         if (csvFile.exists()) {
             csvFile.delete();
         }
-
-        String[] columnName = new String[5];
-        columnName[0] = "x";  // tuples/M
-        columnName[1] = "y";  // load imbalance
-        columnName[2] = "z";  // replication factor
-        columnName[3] = "c";  // cardinality imbalance
-        columnName[4] = "t";  // simulation time
-
         try {
-            writer = new CsvWriter(new FileWriter(csvFile), ',');
+            csvFile.createNewFile();
+
+            this.writer = new CsvWriter(new FileWriter(outFilePathName), 'c');
             writer.writeComment("M tuples, load imbalance, replication factor, cardinality imbalance, simulation time");
+            String[] columnName = new String[5];
+            columnName[0] = "x";  // tuples/M
+            columnName[1] = "y";  // load imbalance
+            columnName[2] = "z";  // replication factor
+            columnName[3] = "c";  // cardinality imbalance
+            columnName[4] = "t";  // simulation time
+
             writer.writeRecord(columnName);
         } catch (IOException e) {
             e.printStackTrace();
@@ -132,8 +137,8 @@ public class Simulator {
         System.out.println("Starting to read the item stream...");
         System.out.println(partitioner.getName() + " Partitioner output:");
 
-//        initializeCsvWriterByTuple(outFilePathName);
-        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
+        initializeCsvWriterByTuple(outFilePathName);
+//        initializeCsvWriterForZipfDifferentSkewness(outFilePathName);
 //        initializeCsvWriterForZipfSameSkewnessDifferentDelta(outFilePathName);
 
         long simulationTime = 0;
@@ -150,7 +155,7 @@ public class Simulator {
 
 //        outputFinalResultByTuple(downstreamOperators, numServers);  // by tuples
 
-        outputFinalResultForZipf(downstreamOperators, numServers, simulationTime);  // by different z for zipf
+//        outputFinalResultForZipf(downstreamOperators, numServers, simulationTime);  // by different z for zipf
     }
 
     private BufferedReader getInput(String inFileName) throws IOException {
@@ -201,7 +206,7 @@ public class Simulator {
         }
 
         reader.close();
-        writer.close();
+
         System.out.println();
         System.out.println("Finished reading items\nTotal items: " + itemCount);
     }
@@ -228,8 +233,7 @@ public class Simulator {
                     long simulationTime = System.currentTimeMillis() - simulationStartTime;
                     System.out.println("Read " + x + "M words.\tSimulation time: " + simulationTime + " ms");
 
-//                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationTime);
-//                    outputPartialResultByTupleForZipf(downstreamOperators, numServers, wordCount);
+                    outputPartialResultByTuple(downstreamOperators, numServers, wordCount, x, simulationTime);
                 }
 
                 sourceIndex++;
@@ -245,42 +249,6 @@ public class Simulator {
         System.out.println();
         System.out.println("Finished reading items\nTotal words: " + wordCount);
         return System.currentTimeMillis() - simulationStartTime;
-    }
-
-    private void outputPartialResultByTupleForZipf(Operator[] downstreamOperators, int numServers, long wordCount) {
-        String[] loads = new String[numServers];
-
-        long maxLoad = downstreamOperators[0].getLoad();
-        loads[0] = String.valueOf(maxLoad);
-        long temp;
-        for (int i = 1; i < numServers - 1; i++) {
-            temp = downstreamOperators[i].getLoad();
-            if (maxLoad < temp) {
-                maxLoad = temp;
-            }
-            loads[i] = String.valueOf(temp);
-        }
-
-        temp = downstreamOperators[numServers - 1].getLoad();
-        if (maxLoad < temp) {
-            maxLoad = temp;
-        }
-        loads[numServers - 1] = String.valueOf(temp);
-
-
-        double averageLoad = wordCount / (double) numServers;
-        double loadImbalance = (maxLoad - averageLoad) / averageLoad;
-        System.out.println("Load Imbalance: " + loadImbalance);
-
-        long allCardinality = 0;
-        for (int i = 1; i < numServers; i++) {
-            temp = downstreamOperators[i].getCardinality();
-            allCardinality += temp;
-        }
-
-        double replicationFactor = (double) allCardinality / partitioner.getTotalCardinality();
-        System.out.println("Replication factor: " + replicationFactor);
-        System.out.println();
     }
 
 
@@ -456,7 +424,7 @@ public class Simulator {
         System.out.println("Replication factor: " + allCardinality + " / " + totalCardinality + " = " + replicationFactor);
 
         System.out.println();
-        System.out.println(((HolisticPartitioner) partitioner).getVk().size());
+        System.out.println(((HolisticPartitionerForString) partitioner).getVk().size());
         System.out.println();
 
         outputForZipfDifferentSkewness(writer, loadImbalance, replicationFactor, cardinalityImbalance, simulationTime);

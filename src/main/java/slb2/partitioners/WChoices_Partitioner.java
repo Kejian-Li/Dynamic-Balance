@@ -98,8 +98,9 @@ public class WChoices_Partitioner extends AbstractPartitioner {
     }
     private long[] merge(long[] arr1, long[] arr2) {
         long[] result = new long[arr1.length];
-        for (int i = 0; i < arr1.length; i++)
+        for (int i = 0; i < arr1.length; i++) {
             result[i] = arr1[i] + arr2[i];
+        }
         return result;
     }
 

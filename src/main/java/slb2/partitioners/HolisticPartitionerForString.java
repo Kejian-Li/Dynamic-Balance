@@ -17,11 +17,12 @@ import java.util.Iterator;
 
 public class HolisticPartitionerForString extends AbstractPartitioner {
 
-    private static final float DEFAULT_EPSILON = 0.01f;
+    private static final float DEFAULT_BETA = 0.01f;
+    private static final float DEFAULT_DELTA = 0.000001f; // 10^-6
     private int numServers;
     private float delta;
     private double error;  // lossy counting error
-    private float epsilon;  // default = 0.01f
+    private float beta;  // default = 0.01f
 
     private Hash hash;
 
@@ -30,12 +31,12 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
     private long[] localLoad;               // record downstream load
     private Multimap<Object, Integer> Vk;   // routing table for heavy hitters
 
-    public HolisticPartitionerForString(int numServers, float delta) {
+    public HolisticPartitionerForString(int numServers) {
         super();
         this.numServers = numServers;
-        this.delta = delta;
+        this.delta = DEFAULT_DELTA;
         this.error = delta * 0.1;
-        this.epsilon = DEFAULT_EPSILON;
+        this.beta = DEFAULT_BETA;
 
         localLoad = new long[numServers];
 
@@ -68,7 +69,7 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
             selected = hash(key);
         } else {
             float RIm = updateRegionalLoadImbalance(key);
-            if (RIm <= epsilon) {
+            if (RIm <= beta) {
                 selected = findLeastLoadOneInVk(key);
             } else {
                 selected = findLeastLoadOneInV();
@@ -139,5 +140,8 @@ public class HolisticPartitionerForString extends AbstractPartitioner {
         return "Holistic";
     }
 
+    public Multimap<Object, Integer> getVk() {
+        return Vk;
+    }
 }
 

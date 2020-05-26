@@ -1,4 +1,4 @@
-package slb2;
+package slb2.reader;
 
 /**
  * Csv data file.

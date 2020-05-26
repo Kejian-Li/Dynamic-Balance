@@ -1,6 +1,7 @@
 package slb2;
 
 import slb2.partitioners.*;
+import slb2.reader.DataType;
 
 public class Main {
 
@@ -19,8 +20,8 @@ public class Main {
         // default
         int threshold = 5;   // frequency threshold of Head
 
-        float delta = 0.01f;
-        float epsilon = 0.001f;   // lossy count frequency threshold
+        float delta = 0.0001f;  // default
+        float epsilon = 0.0001f;   // SpaceSaving parameter
 
         if (simulatorType == 3 || simulatorType == 4 || simulatorType == 5) {
             threshold = Integer.parseInt(args[5]);
@@ -56,7 +57,7 @@ public class Main {
             partitioner = new PKG_Partitioner(numServers);
             outputFileName = "pkg";
         } else if (simulatorType == 3) {
-            partitioner = new DChoices_Partitioner(numServers, threshold, epsilon);
+            partitioner = new DChoices_Partitioner(numServers, threshold);
             outputFileName = "d-choices";
         } else if (simulatorType == 4) {
             partitioner = new WChoices_Partitioner(numServers, threshold);
@@ -68,12 +69,12 @@ public class Main {
             partitioner = new SG_Partitioner(numServers);
             outputFileName = "shuffle";
         } else if (simulatorType == 7) {
-            partitioner = new HolisticPartitioner(numServers, delta);
-//            partitioner = new HolisticPartitionerForString(numServers, delta);
+//            partitioner = new HolisticPartitioner(numServers, delta);
+            partitioner = new HolisticPartitionerForString(numServers);
             outputFileName = "holistic";
         }
 
-        String outFilePathName = outFilePath + "\\" + "zipf_" + numServers + "_" + outputFileName + "_test.csv";
+        String outFilePathName = outFilePath + "\\" + "twitter_" + numServers + "_" + outputFileName + ".csv";
 
         Simulator simulator = new Simulator(numSources, numServers, inFilePathName, outFilePathName, partitioner, dataType);
         simulator.start();

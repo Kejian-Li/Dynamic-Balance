@@ -5,9 +5,6 @@ import com.clearspring.analytics.stream.StreamSummary;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import slb.Constants;
-import slb2.partitioners.AbstractPartitioner;
-import slb2.partitioners.PHeadCount;
-import slb2.partitioners.Seed;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +21,9 @@ public class DChoices_Partitioner extends AbstractPartitioner {
     private int threshold;
     private float epsilon;
 
-    public DChoices_Partitioner(int numServers, int threshold, float epsilon) {
+    private static final float DEFAULT_EPSILON = 0.0001f;
+
+    public DChoices_Partitioner(int numServers, int threshold) {
         super();
         this.numServers = numServers;
         this.localLoad = new long[numServers];
@@ -37,7 +36,7 @@ public class DChoices_Partitioner extends AbstractPartitioner {
             hashes[i] = Hashing.murmur3_128(seed.getSeed(i));
         }
         this.threshold = threshold;
-        this.epsilon = epsilon;
+        this.epsilon = DEFAULT_EPSILON;
     }
 
     @Override

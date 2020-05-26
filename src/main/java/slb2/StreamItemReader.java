@@ -1,12 +1,14 @@
 package slb2;
 
+import slb2.reader.ItemReader;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 
 /**
  * Reads a stream of StreamItems from a file, e.g., wikipedia dataset.
  */
-public class StreamItemReader implements ItemReader{
+public class StreamItemReader implements ItemReader {
 	private BufferedReader in;
 
 	public StreamItemReader(BufferedReader input) {
@@ -23,8 +25,9 @@ public class StreamItemReader implements ItemReader{
 			e.printStackTrace();
 		}
 
-		if (line == null || line.length() == 0)
+		if (line == null || line.length() == 0) {
 			return null;
+		}
 
         String[] fields = line.split(" ");
         return fields;
